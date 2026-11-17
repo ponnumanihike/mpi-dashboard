@@ -2,6 +2,17 @@
 
 A fully client-side HTML/CSS/JS dashboard for Master Data Management (MDM) reporting.
 
+## Shared, persistent data (recommended)
+
+```
+node server.js        # then open http://localhost:3000
+```
+
+Uploads are saved on the server in `data/` and reload automatically for everyone who opens the link
+(other people on your network use `http://<your-PC-IP>:3000`). To share beyond your network, deploy this
+folder to any Node host (Render, Railway, a VM) and point `DATA_DIR` at a persistent disk.
+Without the server (Live Server / file://), data stays in the current browser only.
+
 ## How to run in VS Code
 
 ### Option 1 — Live Server (recommended)
