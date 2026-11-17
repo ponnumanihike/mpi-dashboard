@@ -2,7 +2,20 @@
 
 A fully client-side HTML/CSS/JS dashboard for Master Data Management (MDM) reporting.
 
-## Shared, persistent data (recommended)
+## Always-visible data on Vercel (publish via git)
+
+Both pages load published data automatically when they open:
+
+| File | Shown on |
+|---|---|
+| `reports/latest.csv` | Metrics page and Data Quality page |
+| `reports/dq_latest.csv` (optional) | Data Quality page (used before `latest.csv`) |
+
+To update: replace the file (keep the same name), then `git add reports && git commit -m "Update data" && git push`.
+Vercel redeploys in about a minute and everyone sees the new data. A file uploaded in the browser still
+works and takes priority in that tab until the tab is closed.
+
+## Shared, persistent data with the Node server
 
 ```
 node server.js        # then open http://localhost:3000

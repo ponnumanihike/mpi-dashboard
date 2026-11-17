@@ -307,3 +307,20 @@ function showStatus(type,msg){
   el.textContent=msg;
   el.classList.remove('hidden');
 }
+
+/* ---------- Published data: shown automatically when the page opens ----------
+ * Uses reports/dq_latest.csv (data quality report) if present, else reports/latest.csv.
+ * A DQ report uploaded in this tab (restored by dq-report.js) takes priority. */
+document.addEventListener('DOMContentLoaded', async () => {
+  try { if(sessionStorage.getItem(DQR_STORE)) return; } catch(e){}   // a DQ report uploaded in this tab wins
+  for(const [url, name] of [['../reports/dq_latest.csv','dq_latest.csv'], ['../reports/latest.csv','latest.csv']]){
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if(!res.ok) continue;
+      const text = await res.text();
+      if(!text.trim()) continue;
+      processCSVDQ(text, name + ' (published)');
+      return;
+    } catch(e){ /* try next */ }
+  }
+});

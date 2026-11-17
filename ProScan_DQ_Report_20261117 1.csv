@@ -1,0 +1,40 @@
+snapshot_date,client,area,check,issue_type,records,denominator,pct,severity,notes
+2026-11-17,ProScan,Completeness,Family name missing,Missing,22,11060824,0.0,Low,Same 22 records also lack given name and birth date
+2026-11-17,ProScan,Completeness,Given name missing,Missing,22,11060824,0.0,Low,
+2026-11-17,ProScan,Completeness,Birth date missing,Missing,22,11060824,0.0,Low,
+2026-11-17,ProScan,Completeness,Gender missing,Missing,350,11060824,0.0,Low,
+2026-11-17,ProScan,Completeness,Phone missing,Missing,6433376,11060824,58.16,Medium,Patient resources with no phone
+2026-11-17,ProScan,Completeness,Deceased status not captured,Missing,11060824,11060824,100.0,High,No patient is marked deceased
+2026-11-17,ProScan,Birth date,Birth date in the future,Invalid,648,11060802,0.01,High,
+2026-11-17,ProScan,Birth date,Age over 130,Invalid,867,11060802,0.01,High,
+2026-11-17,ProScan,Birth date,Age 100-130,Review,60766,11060802,0.55,Medium,"Mostly a natural age curve; ~2,400 likely placeholders"
+2026-11-17,ProScan,Birth date,Placeholder date 1900-01-01,Placeholder,957,11060802,0.01,Medium,
+2026-11-17,ProScan,Birth date,Default date 1984-01-27,Placeholder,1388,11060802,0.01,Medium,Likely a default or test date
+2026-11-17,ProScan,Gender,Gender unknown,Placeholder,46603,11060474,0.42,Low,
+2026-11-17,ProScan,Gender,Gender other,Valid value,2756,11060474,0.02,Info,
+2026-11-17,ProScan,Names,TEST as family name,Placeholder,1998,11060802,0.02,High,Test patients in production
+2026-11-17,ProScan,Names,TEST as given name,Placeholder,1172,11060802,0.01,High,
+2026-11-17,ProScan,Names,NULL stored as text (family),Placeholder,354,11060802,0.0,Medium,
+2026-11-17,ProScan,Names,DOE (family),Placeholder,335,11060802,0.0,Medium,
+2026-11-17,ProScan,Names,PATIENT (given),Placeholder,233,11060802,0.0,Medium,
+2026-11-17,ProScan,Names,PATIENT (family),Placeholder,110,11060802,0.0,Medium,
+2026-11-17,ProScan,Names,BABY / BOY / GIRL,Placeholder,157,11060802,0.0,Low,Newborns registered before naming
+2026-11-17,ProScan,Names,UNKNOWN / NA / N/A / NONE / XXX,Placeholder,145,11060802,0.0,Low,
+2026-11-17,ProScan,Phone,"Only a + sign, no digits",Placeholder,689180,5006645,13.77,High,Formatting applied to empty values
+2026-11-17,ProScan,Phone,All same digit (e.g. 222-222-2222),Placeholder,101120,4297899,2.35,High,Share of 10-digit numbers
+2026-11-17,ProScan,Phone,Invalid area code,Invalid,43294,4297899,1.01,Medium,Overlaps with same-digit numbers
+2026-11-17,ProScan,Phone,Invalid exchange,Invalid,45934,4297899,1.07,Medium,Overlaps with same-digit numbers
+2026-11-17,ProScan,Phone,Several numbers in one field,Invalid,6600,5006645,0.13,Low,Approximate
+2026-11-17,ProScan,Phone,Too short (1-9 digits),Invalid,10000,5006645,0.2,Low,Approximate
+2026-11-17,ProScan,Phone,Sequential number,Placeholder,57,4297899,0.0,Low,
+2026-11-17,ProScan,SSN,Valid length (9 digits),Valid value,587538,695555,84.47,Info,
+2026-11-17,ProScan,SSN,Likely encrypted or hashed (17-40 chars),Format,107955,695555,15.52,Medium,
+2026-11-17,ProScan,SSN,Too short,Invalid,62,695555,0.01,Low,
+2026-11-17,ProScan,SSN,All same digit,Placeholder,5,695555,0.0,Low,
+2026-11-17,ProScan,Duplicates,PSI_CNT records repeating a loaded patient,Duplicate,1484556,3258680,45.56,High,Same patient loaded more than once
+2026-11-17,ProScan,Duplicates,ProScan MRNs split across golden records,Duplicate,3181,1462417,0.22,Medium,Likely missed matches
+2026-11-17,ProScan,Duplicates,Golden records with 10+ source records,Review,736,4331064,0.02,Medium,Possible over-matching
+2026-11-17,ProScan,Orders,Orders with no patient,Missing,152565,6469202,2.36,High,86% created from DICOM
+2026-11-17,ProScan,Orders,Orders on inactive patients,Invalid,57206,6469202,0.88,Medium,
+2026-11-17,ProScan,Orders,Orders with no service date,Missing,3455,6469202,0.05,Low,
+2026-11-17,ProScan,Orders,Orders with invalid or future service date,Invalid,3511,6469202,0.05,Low,"Years 204, 1899, 1900, 2027, 2028, 2050"

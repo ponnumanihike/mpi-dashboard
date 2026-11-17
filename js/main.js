@@ -23,7 +23,8 @@ function handleFile(file){
   reader.readAsText(file);
 }
 
-function processCSV(text, fname){
+function processCSV(text, fname, opts){
+  const auto = !!(opts && opts.auto);   // true = published file loaded on page open
   const lines = text.trim().split(/\r?\n/);
   if(lines.length < 2){ showStatus('error','CSV is empty or has no data rows.'); return; }
 
@@ -87,19 +88,52 @@ function processCSV(text, fname){
 
   // Combine with the weeks already uploaded so each new week is compared with the earlier ones
   const combine = document.getElementById('combineUploads');
-  const earlierWeeks = (!combine || combine.checked) ? weeksFromHistoryNotIn(rows) : [];
-  allData = (!combine || combine.checked) ? mergeWithHistory(rows) : rows;
+  const doCombine = !auto && (!combine || combine.checked);
+  const earlierWeeks = doCombine ? weeksFromHistoryNotIn(rows) : [];
+  allData = doCombine ? mergeWithHistory(rows) : rows;
   if(earlierWeeks.length){
     const st = document.getElementById('uploadStatus');
     st.textContent += ' · Combined with ' + earlierWeeks.length + ' earlier week' + (earlierWeeks.length > 1 ? 's' : '') + ' from upload history (' + [...new Set(allData.map(r => r.week))].length + ' weeks compared).';
   }
   // Store for DQ page (this file only)
-  sessionStorage.setItem('mdm_csv_data', JSON.stringify(rows));
+  // (published file isn't cached, so a reload always picks up the latest pushed version)
+  if(auto) sessionStorage.removeItem('mdm_csv_data');
+  else sessionStorage.setItem('mdm_csv_data', JSON.stringify(rows));
   sessionStorage.setItem('mdm_csv_name', fname);
   renderDashboard();
   // Keep every validated upload in history so it can be compared with later files
-  if(typeof saveToHistory === 'function') saveToHistory(fname, rows, rowErrors.length);
+  if(!auto && typeof saveToHistory === 'function') saveToHistory(fname, rows, rowErrors.length);
 }
+
+/* ---------- Published data: shown automatically when the page opens ----------
+ * Commit the CSV to reports/latest.csv and push; Vercel redeploys and everyone sees it.
+ * A file uploaded in this tab takes priority until the tab is closed. */
+const PUBLISHED_CSV = 'reports/latest.csv';
+
+async function loadPublishedData(){
+  try {
+    const saved = sessionStorage.getItem('mdm_csv_data');
+    if(saved){
+      const rows = JSON.parse(saved);
+      if(rows.length){
+        allData = rows;
+        showStatus('success', `Showing "${sessionStorage.getItem('mdm_csv_name') || 'uploaded file'}" (uploaded in this tab) — ${rows.length} rows`);
+        renderDashboard();
+        return;
+      }
+    }
+  } catch(e){ /* fall through to published file */ }
+  try {
+    const res = await fetch(PUBLISHED_CSV, { cache: 'no-cache' });
+    if(!res.ok) return;                       // nothing published yet — wait for an upload
+    const text = await res.text();
+    if(!text.trim()) return;
+    processCSV(text, 'latest.csv', { auto: true });
+    const st = document.getElementById('uploadStatus');
+    if(st && !st.classList.contains('error')) st.textContent = st.textContent.replace(/^✓ CSV validated and loaded:/, '✓ Showing published data:') + ' (upload a file to view a different one)';
+  } catch(e){ /* offline or file:// — ignore */ }
+}
+document.addEventListener('DOMContentLoaded', loadPublishedData);
 
 function escHtml(s){
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
