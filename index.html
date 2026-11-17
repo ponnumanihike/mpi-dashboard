@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HIKE HEALTH MPI DASHBOARD</title>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="js/theme.js"></script>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="topbar">
+  <div class="topbar-title"><span class="spark">HIKE HEALTH</span> MPI DASHBOARD</div>
+  <a href="index.html" class="tab active">MDM Metrics &amp; Trends</a>
+  <a href="pages/data-quality.html" class="tab inactive" id="dq-tab">Data Quality</a>
+  <button class="refresh-btn" onclick="location.reload()">&#x21bb; Refresh</button>
+</div>
+
+<!-- REPORT GENERATION BAR -->
+<div class="report-section">
+  <div class="report-header">
+    <div>
+      <div class="report-header-title">&#128202; Report generation</div>
+      <div class="report-header-sub">Download MDM reports from the uploaded data</div>
+    </div>
+  </div>
+  <div class="report-cards">
+
+    <!-- DAILY -->
+    <div class="rcard daily">
+      <span class="rcard-badge badge-planned">Planned</span>
+      <div class="rcard-label">&#128197; Daily report</div>
+      <div class="rcard-title">MDM source activity summary</div>
+      <div class="rcard-meta">Record counts and feed status for the latest uploaded week.</div>
+      <div class="rcard-formats">
+        <span class="fmt-label">Available formats:</span>
+        <span class="fmt-tag">CSV</span>
+        <span class="fmt-tag">DOC</span>
+      </div>
+      <div class="rcard-includes">
+        <div class="includes-label">Report includes:</div>
+        <ul class="report-includes">
+          <li>Source ID and source name</li>
+          <li>Source record count for the period</li>
+          <li>Golden record count for the period</li>
+          <li>Week-on-week record delta per source</li>
+          <li>Feed status per source (Updated / Jump / No change)</li>
+          <li>Potential match count per source</li>
+        </ul>
+      </div>
+      <div class="rcard-actions">
+        <button class="btn-dl" onclick="downloadReport('daily','csv')">&#8595; CSV</button>
+        <button class="btn-dl" onclick="downloadReport('daily','doc')">&#8595; DOC</button>
+      </div>
+    </div>
+
+    <!-- WEEKLY -->
+    <div class="rcard weekly">
+      <span class="rcard-badge badge-planned">Planned</span>
+      <div class="rcard-label">&#128197; Weekly report</div>
+      <div class="rcard-title">MDM metrics and trend digest</div>
+      <div class="rcard-meta">Week-on-week KPIs, trends, and source breakdown across all uploaded weeks.</div>
+      <div class="rcard-formats">
+        <span class="fmt-label">Available formats:</span>
+        <span class="fmt-tag">CSV</span>
+        <span class="fmt-tag">DOC</span>
+      </div>
+      <div class="rcard-includes">
+        <div class="includes-label">Report includes:</div>
+        <ul class="report-includes">
+          <li>All five headline KPI values with week-on-week deltas</li>
+          <li>Source vs golden records trend across all uploaded weeks</li>
+          <li>Top 10 sources by source record volume</li>
+          <li>Potential match ratio by week</li>
+          <li>Per-source singleton rate</li>
+          <li>Watch list — feeds to confirm and queues to review</li>
+        </ul>
+      </div>
+      <div class="rcard-actions">
+        <button class="btn-dl green" onclick="downloadReport('weekly','csv')">&#8595; CSV</button>
+        <button class="btn-dl green" onclick="downloadReport('weekly','doc')">&#8595; DOC</button>
+      </div>
+    </div>
+
+    <!-- MONTHLY -->
+    <div class="rcard monthly">
+      <span class="rcard-badge badge-planned">Planned</span>
+      <div class="rcard-label">&#128197; Monthly report</div>
+      <div class="rcard-title">MDM executive and compliance summary</div>
+      <div class="rcard-meta">Full-period aggregated metrics for executive review and compliance.</div>
+      <div class="rcard-formats">
+        <span class="fmt-label">Available formats:</span>
+        <span class="fmt-tag">CSV</span>
+        <span class="fmt-tag">DOC</span>
+      </div>
+      <div class="rcard-includes">
+        <div class="includes-label">Report includes:</div>
+        <ul class="report-includes">
+          <li>Aggregated source and golden record totals for the period</li>
+          <li>Month-on-month KPI comparison</li>
+          <li>Singleton rate trend across all weeks</li>
+          <li>Potential match ratio trend across all weeks</li>
+          <li>Source-level breakdown for all sources</li>
+          <li>Data quality issue summary (error and warning counts)</li>
+        </ul>
+      </div>
+      <div class="rcard-actions">
+        <button class="btn-dl orange" onclick="downloadReport('monthly','csv')">&#8595; CSV</button>
+        <button class="btn-dl orange" onclick="downloadReport('monthly','doc')">&#8595; DOC</button>
+      </div>
+    </div>
+
+    <!-- COMPARISON -->
+    <div class="rcard compare">
+      <span class="rcard-badge badge-planned">Planned</span>
+      <div class="rcard-label">&#128200; Comparison report</div>
+      <div class="rcard-title">Week-over-week comparison summary</div>
+      <div class="rcard-meta">Latest week compared with the previous week, field by field and source by source.</div>
+      <div class="rcard-formats">
+        <span class="fmt-label">Available formats:</span>
+        <span class="fmt-tag">CSV</span>
+        <span class="fmt-tag">DOC</span>
+      </div>
+      <div class="rcard-includes">
+        <div class="includes-label">Report includes:</div>
+        <ul class="report-includes">
+          <li>Previous vs current value for every headline field</li>
+          <li>Difference, % change and increase / decrease direction</li>
+          <li>Variation per source: records, golden records, singleton rate, feed status</li>
+          <li>New or missing sources between the two weeks</li>
+          <li>Trend across all uploaded weeks (Week 1, Week 2, Week 3 …)</li>
+          <li>What to watch and confirm</li>
+        </ul>
+      </div>
+      <div class="rcard-actions">
+        <button class="btn-dl purple" onclick="downloadReport('comparison','csv')">&#8595; CSV</button>
+        <button class="btn-dl purple" onclick="downloadReport('comparison','doc')">&#8595; DOC</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CSV UPLOAD AREA -->
+<div class="upload-section">
+  <div class="upload-box" id="uploadBox" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+    <div class="upload-icon">&#128196;</div>
+    <div class="upload-title">Upload MDM data report (CSV)</div>
+    <div class="upload-sub">Drag and drop your CSV file here, or click to browse</div>
+    <div class="upload-sub upload-hint">
+      Accepts the MDM weekly report (snapshot_date, period, client, resource_type, source, source_recs, golden_recs, singleton_pct, potential_matches)<br>
+      or the standard format: source_id, source_name, source_records, golden_records, singleton_rate, potential_matches, week, status, resource_type (Patient, Practitioner or Organization), singleton_records
+    </div>
+    <label class="upload-btn">
+      &#128194; Choose CSV file
+      <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="handleFile(this.files[0])"/>
+    </label>
+  </div>
+  <label class="combine-opt"><input type="checkbox" id="combineUploads" checked> Combine with weeks from earlier uploads, so a new week is compared with the previous weeks automatically</label>
+  <div id="uploadStatus" class="upload-status hidden"></div>
+  <div id="validationErrors" class="validation-errors hidden"></div>
+</div>
+
+<!-- UPLOAD HISTORY & COMPARISON -->
+<div class="full-card" id="historyCard">
+  <div class="hist-head">
+    <div>
+      <div class="section-label">Upload history</div>
+      <div class="section-sub">Every validated upload is saved in this browser. Load an earlier file, or compare two of them. <span id="historyCount"></span></div>
+    </div>
+    <button class="btn-secondary sm" id="clearHistoryBtn" onclick="clearHistory()">Clear history</button>
+  </div>
+  <div class="table-wrapper hist-scroll">
+    <table>
+      <thead><tr><th>File</th><th>Uploaded</th><th>Report week(s)</th><th class="num">Rows</th><th></th></tr></thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-label" style="margin-top:16px">Compare two reports</div>
+  <div class="section-sub" id="cmpHint"></div>
+  <div class="search-filter-row">
+    <label class="cmp-label">Baseline (previous)
+      <select id="cmpBase"></select>
+    </label>
+    <span class="cmp-arrow">&#8594;</span>
+    <label class="cmp-label">Current (new)
+      <select id="cmpCurrent"></select>
+    </label>
+    <button class="btn-dl" id="cmpBtn" onclick="runComparison()">Compare</button>
+  </div>
+  <div id="cmpStatus" class="upload-status hidden"></div>
+
+  <div id="cmpResult" class="hidden">
+    <div class="cmp-toolbar">
+      <div id="cmpCounts"></div>
+      <div>
+        <button class="btn-dl green" onclick="downloadComparisonHTML()">&#8595; Comparison report (HTML)</button>
+        <button class="btn-secondary sm" onclick="downloadComparisonCSV()">&#8595; CSV</button>
+      </div>
+    </div>
+    <div class="section-sub" style="margin-top:8px">Summary — totals use the all-sources (ALL) rows</div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Metric</th><th class="num">Baseline</th><th class="num">Current</th><th class="num">Change</th><th class="num">Change %</th></tr></thead>
+        <tbody id="cmpSummaryBody"></tbody>
+      </table>
+    </div>
+    <div class="section-sub" style="margin-top:12px">By source — biggest movers first</div>
+    <div class="table-wrapper">
+      <table id="cmpDetailTable">
+        <thead>
+          <tr>
+            <th rowspan="2">Source ID</th><th rowspan="2">Source name</th>
+            <th class="num" colspan="4">Source records</th>
+            <th class="num" colspan="3">Golden records</th>
+            <th class="num" colspan="3">Singleton %</th>
+            <th class="num" colspan="3">Potential matches</th>
+            <th rowspan="2">Change</th>
+          </tr>
+          <tr>
+            <th class="num">Baseline</th><th class="num">Current</th><th class="num">Δ</th><th class="num">Δ %</th>
+            <th class="num">Baseline</th><th class="num">Current</th><th class="num">Δ</th>
+            <th class="num">Baseline</th><th class="num">Current</th><th class="num">Δ</th>
+            <th class="num">Baseline</th><th class="num">Current</th><th class="num">Δ</th>
+          </tr>
+        </thead>
+        <tbody id="cmpDetailBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER TOOLBAR (shown after upload) -->
+<div class="toolbar hidden" id="toolbar">
+  <select id="filterResourceType" onchange="applyFilters()">
+    <option value="Patient" selected>Patient</option>
+    <option value="Practitioner">Practitioner</option>
+    <option value="Organization">Organization</option>
+  </select>
+  <select id="filterWeek" onchange="applyFilters()">
+    <option value="all">Week: All weeks</option>
+  </select>
+  <select id="filterStatus" onchange="applyFilters()">
+    <option value="all">Status: All</option>
+    <option value="Updated">Updated</option>
+    <option value="Jump">Jump</option>
+    <option value="No change">No change</option>
+  </select>
+  <span class="info" id="sourceCount">— sources loaded</span>
+  <button class="dl-btn" onclick="downloadReport('weekly')">&#8595; Download weekly summary</button>
+</div>
+
+<!-- KPI CARDS (shown after upload) -->
+<div class="kpi-row hidden" id="kpiRow">
+  <div class="kpi"><div class="label">Source Records</div><div class="val" id="kpi-src">—</div><div class="cmp" id="kpi-src-c"></div><div class="delta" id="kpi-src-d">—</div></div>
+  <div class="kpi"><div class="label">Golden Records</div><div class="val" id="kpi-gold">—</div><div class="cmp" id="kpi-gold-c"></div><div class="delta" id="kpi-gold-d">—</div></div>
+  <div class="kpi"><div class="label">Source : Golden</div><div class="val" id="kpi-ratio">—</div><div class="cmp" id="kpi-ratio-c"></div><div class="delta" id="kpi-ratio-d">—</div></div>
+  <div class="kpi"><div class="label">Singleton Rate</div><div class="val" id="kpi-singleton">—</div><div class="cmp" id="kpi-singleton-c"></div><div class="delta" id="kpi-singleton-d">—</div></div>
+  <div class="kpi"><div class="label">Potential Matches</div><div class="val" id="kpi-pm">—</div><div class="cmp" id="kpi-pm-c"></div><div class="delta" id="kpi-pm-d">—</div></div>
+</div>
+<p class="kpi-note hidden" id="kpiNote">Headline cards use the all-sources (ALL) row, so shared golden records are counted once.</p>
+
+<!-- CHARTS: 4 comparisons -->
+<div class="chart-grid hidden" id="chartsRow">
+  <div class="card chart-card"><div class="chart-title">Source Records — by source</div><div class="chart-box"><canvas id="srcChart"></canvas></div></div>
+  <div class="card chart-card"><div class="chart-title">Golden Records — by source</div><div class="chart-box"><canvas id="goldChart"></canvas></div></div>
+  <div class="card chart-card"><div class="chart-title">Singleton Rate (%) — by source</div><div class="chart-box"><canvas id="singChart"></canvas></div></div>
+  <div class="card chart-card"><div class="chart-title">Potential Matches</div><div class="chart-box"><canvas id="pmCountChart"></canvas></div></div>
+</div>
+
+<!-- ALL SOURCES TABLE -->
+<div class="full-card hidden" id="tableCard">
+  <div class="section-label">All sources</div>
+  <div class="section-sub">Search, sort and filter. Click a row to inspect details.</div>
+  <div class="search-filter-row">
+    <input type="text" id="searchInput" placeholder="&#128269; Search source name..." oninput="applyFilters()"/>
+    <select id="sourceSelect" onchange="applyFilters()">
+      <option value="all">All sources</option>
+    </select>
+    <select id="sortSelect" onchange="applyFilters()">
+      <option value="source_records">Sort: Source records</option>
+      <option value="golden_records">Sort: Golden records</option>
+      <option value="singleton_rate">Sort: Singleton %</option>
+      <option value="potential_matches">Sort: Potential matches</option>
+    </select>
+    <span class="pagination" id="pageInfo">Page 1 of 1</span>
+    <button class="btn-secondary sm" onclick="changePage(-1)">&#8249; Prev</button>
+    <button class="btn-secondary sm" onclick="changePage(1)">Next &#8250;</button>
+  </div>
+  <div class="table-wrapper">
+    <table id="sourceTable">
+      <thead>
+        <tr>
+          <th>Source ID</th>
+          <th>Source name</th>
+          <th class="num">Source records</th>
+          <th class="num">Δ vs last week</th>
+          <th class="num">Golden records</th>
+          <th class="num">Δ vs last week</th>
+          <th class="num">Singleton %</th>
+          <th class="num">Δ vs last week</th>
+          <th class="num">Potential matches</th>
+          <th class="num">Δ vs last week</th>
+          <th>Week</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="js/mdm-format.js"></script>
+<script src="js/main.js"></script>
+<script src="js/report-doc.js"></script>
+<script src="js/history-compare.js"></script>
+</body>
+</html>

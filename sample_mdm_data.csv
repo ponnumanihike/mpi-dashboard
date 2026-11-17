@@ -1,0 +1,43 @@
+source_id,source_name,source_records,golden_records,singleton_rate,potential_matches,week,status,resource_type,singleton_records
+SRC-0001,Epic EHR System,2310000,1925000,85.0,4120,2024-W01,Updated,Patient,1636250
+SRC-0002,Cerner PowerChart,1480000,1233333,86.3,2880,2024-W01,Updated,Patient,1064366
+SRC-0003,Allscripts Enterprise,990000,825000,87.6,1200,2024-W01,Updated,Patient,722700
+SRC-0004,athenahealth Network,760000,633333,88.9,1240,2024-W01,Updated,Patient,563033
+SRC-0005,NextGen Healthcare,610000,508333,89.2,0,2024-W01,No change,Patient,453433
+SRC-0006,eClinicalWorks,450000,375000,90.5,960,2024-W01,Updated,Practitioner,339375
+SRC-0007,GE Centricity,330000,275000,91.8,410,2024-W01,Updated,Practitioner,252450
+SRC-0008,Meditech Expanse,270000,225000,85.1,380,2024-W01,Updated,Practitioner,191475
+SRC-0009,CPSI TruBridge,210000,175000,86.4,0,2024-W01,No change,Practitioner,151200
+SRC-0010,Greenway Health,165000,137500,87.7,220,2024-W01,Updated,Practitioner,120588
+SRC-0011,Practice Fusion,142000,118333,88.5,180,2024-W01,Updated,Organization,104725
+SRC-0012,DrChrono,118000,98333,89.1,140,2024-W01,Updated,Organization,87615
+SRC-0013,Kareo Clinical,95000,79167,90.3,110,2024-W01,Updated,Organization,71488
+SRC-0014,ModMed Practice,78000,65000,91.2,95,2024-W01,Updated,Organization,59280
+SRC-0001,Epic EHR System,2314120,1928200,85.1,4310,2024-W02,Updated,Patient,1640898
+SRC-0002,Cerner PowerChart,1482880,1235500,86.4,2920,2024-W02,Updated,Patient,1067472
+SRC-0003,Allscripts Enterprise,1000000,833333,87.8,1250,2024-W02,Jump,Patient,731666
+SRC-0004,athenahealth Network,761240,634000,88.9,1260,2024-W02,Updated,Patient,563626
+SRC-0005,NextGen Healthcare,610000,508333,89.2,0,2024-W02,No change,Patient,453433
+SRC-0006,eClinicalWorks,450960,375800,90.6,980,2024-W02,Updated,Practitioner,340475
+SRC-0007,GE Centricity,330410,275342,91.9,420,2024-W02,Updated,Practitioner,253039
+SRC-0008,Meditech Expanse,270380,225317,85.2,390,2024-W02,Updated,Practitioner,191970
+SRC-0009,CPSI TruBridge,210000,175000,86.4,0,2024-W02,No change,Practitioner,151200
+SRC-0010,Greenway Health,165220,137683,87.8,230,2024-W02,Updated,Practitioner,120886
+SRC-0011,Practice Fusion,142200,118500,88.6,185,2024-W02,Updated,Organization,104991
+SRC-0012,DrChrono,118150,98458,89.2,145,2024-W02,Updated,Organization,87825
+SRC-0013,Kareo Clinical,95110,79258,90.4,115,2024-W02,Updated,Organization,71649
+SRC-0014,ModMed Practice,78095,65079,91.3,98,2024-W02,Updated,Organization,59417
+SRC-0001,Epic EHR System,2318500,1930100,85.2,4520,2024-W03,Updated,Patient,1644445
+SRC-0002,Cerner PowerChart,1485800,1238167,86.5,3010,2024-W03,Updated,Patient,1071014
+SRC-0003,Allscripts Enterprise,1010200,841833,87.9,1310,2024-W03,Updated,Patient,739971
+SRC-0004,athenahealth Network,762500,635417,89.0,1290,2024-W03,Updated,Patient,565521
+SRC-0005,NextGen Healthcare,610000,508333,89.2,0,2024-W03,No change,Patient,453433
+SRC-0006,eClinicalWorks,451920,376600,90.7,1010,2024-W03,Updated,Practitioner,341576
+SRC-0007,GE Centricity,330820,275683,92.0,435,2024-W03,Updated,Practitioner,253628
+SRC-0008,Meditech Expanse,270760,225633,85.3,405,2024-W03,Updated,Practitioner,192465
+SRC-0009,CPSI TruBridge,210000,175000,86.4,0,2024-W03,No change,Practitioner,151200
+SRC-0010,Greenway Health,165440,137867,87.9,242,2024-W03,Updated,Practitioner,121185
+SRC-0011,Practice Fusion,142380,118650,88.7,192,2024-W03,Updated,Organization,105243
+SRC-0012,DrChrono,118290,98575,89.3,152,2024-W03,Updated,Organization,88027
+SRC-0013,Kareo Clinical,95220,79350,90.5,122,2024-W03,Updated,Organization,71812
+SRC-0014,ModMed Practice,78190,65158,91.4,102,2024-W03,Updated,Organization,59554

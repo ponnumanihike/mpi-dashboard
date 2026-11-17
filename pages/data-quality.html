@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Data Quality — HIKE HEALTH MPI DASHBOARD</title>
+<link rel="stylesheet" href="../css/style.css"/>
+<script src="../js/theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title"><span class="spark">HIKE HEALTH</span> MPI DASHBOARD</div>
+  <a href="../index.html" class="tab inactive">MDM Metrics &amp; Trends</a>
+  <a href="data-quality.html" class="tab active">Data Quality</a>
+  <button class="refresh-btn" onclick="location.reload()">&#x21bb; Refresh</button>
+</div>
+
+<!-- UPLOAD SECTION (DQ page) -->
+<div class="upload-section">
+  <div class="upload-box" id="uploadBox" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+    <div class="upload-icon">&#128196;</div>
+    <div class="upload-title">Upload data quality report or MDM data report (CSV)</div>
+    <div class="upload-sub">Drag and drop your CSV file here, or click to browse</div>
+    <div class="upload-sub upload-hint">
+      Data quality report: snapshot_date, client, area, check, issue_type, records, denominator, pct, severity, notes<br>
+      Accepts the MDM weekly report (snapshot_date, period, client, resource_type, source, source_recs, golden_recs, singleton_pct, potential_matches)<br>
+      or the standard format: source_id, source_name, source_records, golden_records, singleton_rate, potential_matches, week, status
+    </div>
+    <label class="upload-btn">
+      &#128194; Choose CSV file
+      <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="handleFileDQ(this.files[0])"/>
+    </label>
+  </div>
+  <div id="uploadStatus" class="upload-status hidden"></div>
+  <div id="validationErrors" class="validation-errors hidden"></div>
+</div>
+
+<!-- DATA QUALITY REPORT (e.g. ProScan_DQ_Report CSV) -->
+<div id="dqrSection" class="hidden">
+  <div class="dqr-head">
+    <h2 id="dqr-title">Data quality report</h2>
+    <p id="dqr-sub"></p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="label">Checks reported</div><div class="val" id="dqr-total">—</div><div class="delta neu">in this report</div></div>
+    <div class="kpi"><div class="label">High severity</div><div class="val" id="dqr-high">—</div><div class="delta dn">need action</div></div>
+    <div class="kpi"><div class="label">Medium severity</div><div class="val" id="dqr-med">—</div><div class="delta neu">review</div></div>
+    <div class="kpi"><div class="label">Low / Info</div><div class="val" id="dqr-low">—</div><div class="delta neu" id="dqr-low-d">—</div></div>
+    <div class="kpi"><div class="label">Report field issues</div><div class="val" id="dqr-valid">—</div><div class="delta" id="dqr-valid-d">—</div></div>
+  </div>
+
+  <div class="full-card">
+    <div class="section-label">Quality findings</div>
+    <div class="section-sub" id="dqrCount"></div>
+    <div class="search-filter-row">
+      <input type="text" id="dqrSearch" placeholder="&#128269; Search check or notes..." oninput="filterDQR()"/>
+      <select id="dqrArea" onchange="filterDQR()"><option value="all">All areas</option></select>
+      <select id="dqrSeverity" onchange="filterDQR()">
+        <option value="all">All severities</option>
+        <option value="High">High</option><option value="Medium">Medium</option>
+        <option value="Low">Low</option><option value="Info">Info</option>
+      </select>
+      <select id="dqrType" onchange="filterDQR()">
+        <option value="all">All issue types</option>
+        <option>Missing</option><option>Invalid</option><option>Placeholder</option>
+        <option>Review</option><option>Duplicate</option><option>Format</option><option>Valid value</option>
+      </select>
+      <select id="dqrSort" onchange="filterDQR()">
+        <option value="file">Sort: report order</option>
+        <option value="severity">Sort: severity</option>
+        <option value="pct">Sort: % affected</option>
+        <option value="records">Sort: records</option>
+      </select>
+    </div>
+    <div class="table-wrapper"><table>
+      <thead><tr><th>Area</th><th>Check</th><th>Issue type</th><th class="num">Records</th><th class="num">Denominator</th><th>% affected</th><th>Severity</th><th>Notes</th></tr></thead>
+      <tbody id="dqrBody"></tbody>
+    </table></div>
+  </div>
+
+  <div class="full-card hidden" id="dqrIssuesCard">
+    <div class="section-label">Report validation issues</div>
+    <div class="section-sub">Rows in the uploaded file that failed a field check</div>
+    <div class="table-wrapper"><table>
+      <thead><tr><th>Row #</th><th>Area</th><th>Check</th><th>Severity</th><th>Issue description</th></tr></thead>
+      <tbody id="dqrIssuesBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- DQ SUMMARY CARDS -->
+<div class="kpi-row hidden" id="dqKpiRow">
+  <div class="kpi"><div class="label">Total rows</div><div class="val" id="dq-total">—</div><div class="delta neu">loaded</div></div>
+  <div class="kpi"><div class="label">Valid rows</div><div class="val" id="dq-valid">—</div><div class="delta up" id="dq-valid-pct">—</div></div>
+  <div class="kpi"><div class="label">Rows with issues</div><div class="val" id="dq-issues">—</div><div class="delta dn" id="dq-issues-pct">—</div></div>
+  <div class="kpi"><div class="label">Missing values</div><div class="val" id="dq-missing">—</div><div class="delta" id="dq-missing-d">—</div></div>
+  <div class="kpi"><div class="label">Overall quality score</div><div class="val" id="dq-score">—</div><div class="delta" id="dq-score-d">—</div></div>
+</div>
+
+<!-- DQ CHECKS DETAIL -->
+<div class="section-row hidden" id="dqChartsRow">
+  <div class="card">
+    <div class="card-title">Column completeness</div>
+    <div class="card-sub">% of non-null values per required column</div>
+    <div class="legend-row">
+      <span class="legend-item"><span class="legend-swatch" style="background:#16a34a"></span>100% complete</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:#f59e0b"></span>90–99%</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:#e85d2a"></span>Below 90%</span>
+    </div>
+    <div id="completenessChart"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Data quality checks</div>
+    <div class="card-sub">Rule validation results</div>
+    <div id="rulesPanel"></div>
+  </div>
+</div>
+
+<!-- DQ ISSUES TABLE -->
+<div class="full-card hidden" id="dqTableCard">
+  <div class="section-label">Row-level issues</div>
+  <div class="section-sub">Rows that failed one or more validation rules</div>
+  <div class="search-filter-row">
+    <input type="text" id="dqSearch" placeholder="&#128269; Search source..." oninput="filterDQTable()"/>
+    <select id="dqSeverity" onchange="filterDQTable()">
+      <option value="all">All severities</option>
+      <option value="Error">Error</option>
+      <option value="Warning">Warning</option>
+    </select>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Row #</th>
+          <th>Source ID</th>
+          <th>Source name</th>
+          <th>Week</th>
+          <th>Severity</th>
+          <th>Issue description</th>
+        </tr>
+      </thead>
+      <tbody id="dqTableBody"></tbody>
+    </table>
+  </div>
+  <div id="dqNoIssues" class="no-issues hidden">&#10003; No row-level issues found — data looks clean!</div>
+</div>
+
+<!-- FIELD STATS TABLE -->
+<div class="full-card hidden" id="fieldStatsCard">
+  <div class="section-label">Field statistics</div>
+  <div class="section-sub">Descriptive stats for numeric columns</div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Column</th>
+          <th class="num">Min</th>
+          <th class="num">Max</th>
+          <th class="num">Mean</th>
+          <th class="num">Median</th>
+          <th class="num">Null count</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="fieldStatsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="../js/mdm-format.js"></script>
+<script src="../js/dq-report.js"></script>
+<script src="../js/data-quality.js"></script>
+</body>
+</html>
