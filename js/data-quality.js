@@ -14,6 +14,8 @@ function handleDrop(e){
 }
 
 function handleFileDQ(file){
+  const nameEl = document.getElementById('dqUploadFileName');
+  if(nameEl && file) nameEl.textContent = file.name;
   if(!file) return;
   if(!file.name.endsWith('.csv')){ showStatus('error','Only CSV files are accepted.'); return; }
   showStatus('info','Reading: ' + file.name + ' ...');

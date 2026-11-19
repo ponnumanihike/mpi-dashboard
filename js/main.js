@@ -5,6 +5,26 @@ const PAGE_SIZE = 15;
 let allData = [], typeData = [], filteredData = [], currentPage = 1;
 const chartObjs = {};
 
+// Companies plotted by default on the four trend charts; every other source stays hidden until picked in the source filter
+const DEFAULT_COMPANIES = [
+  { id: 'GCBS_NG',       color: '#2563d4' },
+  { id: 'HRH_EPC',       color: '#16a34a' },
+  { id: 'LVPAIN_AP',     color: '#e85d2a' },
+  { id: 'MAY1',          color: '#9333ea' },
+  { id: 'NAEV_ECW',      color: '#0891b2' },
+  { id: 'NCH_EPC',       color: '#f59e0b' },
+  { id: 'NCSH_MT',       color: '#dc2626' },
+  { id: 'NWOS_EPC',      color: '#059669' },
+  { id: 'OAK_EGP',       color: '#d97706' },
+  { id: 'OAK_EPC',       color: '#7c3aed' },
+  { id: 'OrthoOHAA',     color: '#db2777' },
+  { id: 'PSI_CNT',       color: '#0284c7' },
+  { id: 'SHIELDS_ERAD',  color: '#65a30d' },
+  { id: 'TUG_IC',        color: '#ea580c' },
+  { id: 'TUHS_EPC',      color: '#0d9488' },
+];
+const DEFAULT_COMPANY_IDS = DEFAULT_COMPANIES.map(c => c.id);
+
 function handleDrop(e){
   e.preventDefault();
   document.getElementById('uploadBox').classList.remove('drag-over');
@@ -13,6 +33,8 @@ function handleDrop(e){
 }
 
 function handleFile(file){
+  const nameEl = document.getElementById('uploadFileName');
+  if(nameEl && file) nameEl.textContent = file.name;
   if(!file) return;
   if(!file.name.endsWith('.csv')){
     showStatus('error','Only CSV files are accepted. Please upload a .csv file.'); return;
@@ -521,14 +543,33 @@ function renderCharts(data){
   const perSource = sourceRows(data);
   const labelOf = r => String(r.source_name).includes(' — ') ? String(r.source_name).split(' — ').slice(1).join(' — ') : r.source_name;
   const allNames = [...new Set(perSource.map(labelOf))];
-  // "All sources" filter = every source; picking one source charts only that source.
-  // Colours are assigned from the full list so a source keeps its colour when filtered.
   const selId = document.getElementById('sourceSelect')?.value || 'all';
-  const names = selId === 'all' ? allNames : [...new Set(perSource.filter(r => r.source_id === selId).map(labelOf))];
-  const series = fn => names.map(n => ({
-    label:n, borderColor:srcColor(allNames.indexOf(n)),
+
+  // Which lines to draw:
+  //  default: the 15 DEFAULT_COMPANIES (those present in the data), also when one of them is picked
+  //  custom : a non-default source picked in the filter -> only that source
+  //  legacy : none of the 15 exist in the data -> every source, as before
+  const matchCo = (r, id) => r.source_id === id || r.source_name === id || labelOf(r) === id;
+  const selRows = selId === 'all' ? [] : perSource.filter(r => r.source_id === selId);
+  const selIsDefault = DEFAULT_COMPANIES.some(c => selRows.some(r => matchCo(r, c.id)));
+  const defaultsPresent = DEFAULT_COMPANIES.filter(c => perSource.some(r => matchCo(r, c.id)));
+  let groups;
+  if(selId !== 'all' && !selIsDefault){
+    const selNames = [...new Set(selRows.map(labelOf))];
+    groups = selNames.map(n => ({
+      label:n, color: selNames.length === 1 ? '#2563d4' : srcColor(allNames.indexOf(n)),
+      match: r => r.source_id === selId && labelOf(r) === n
+    }));
+  } else if(defaultsPresent.length){
+    groups = defaultsPresent.map(c => ({ label:c.id, color:c.color, match: r => matchCo(r, c.id) }));
+  } else {
+    const names = selId === 'all' ? allNames : [...new Set(selRows.map(labelOf))];
+    groups = names.map(n => ({ label:n, color:srcColor(allNames.indexOf(n)), match: r => labelOf(r) === n }));
+  }
+  const series = fn => groups.map(g => ({
+    label:g.label, borderColor:g.color,
     data: weeks.map(w => {
-      const rows = perSource.filter(r => r.week === w && labelOf(r) === n);
+      const rows = perSource.filter(r => r.week === w && g.match(r));
       return rows.length ? fn(rows) : null;
     })
   }));
@@ -545,7 +586,7 @@ function renderCharts(data){
     }),
     {min:0,max:100,ticks:{stepSize:20,callback:v => v + '%',font:{size:10}}}, v => Number(v).toFixed(1) + '%', true);
 
-  // Potential matches: total across all sources (ALL row), one line
+  // Potential matches: always the full all-sources total (ALL row), one line, regardless of company filter
   const pm = weeks.map(w => sum(totalsRows(data.filter(r=>r.week===w)),'potential_matches'));
   makeLineChart('pm','pmCountChart',labels,
     [{label:'Potential Matches',borderColor:'#d94a38',data:pm}],

@@ -17,20 +17,13 @@
 </div>
 
 <!-- UPLOAD SECTION (DQ page) -->
-<div class="upload-section">
-  <div class="upload-box" id="uploadBox" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
-    <div class="upload-icon">&#128196;</div>
-    <div class="upload-title">Upload data quality report or MDM data report (CSV)</div>
-    <div class="upload-sub">Drag and drop your CSV file here, or click to browse</div>
-    <div class="upload-sub upload-hint">
-      Data quality report: snapshot_date, client, area, check, issue_type, records, denominator, pct, severity, notes<br>
-      Accepts the MDM weekly report (snapshot_date, period, client, resource_type, source, source_recs, golden_recs, singleton_pct, potential_matches)<br>
-      or the standard format: source_id, source_name, source_records, golden_records, singleton_rate, potential_matches, week, status
-    </div>
-    <label class="upload-btn">
-      &#128194; Choose CSV file
+<div class="upload-bar">
+  <div class="upload-bar-left">
+    <label class="upload-bar-btn" id="uploadBox" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+      &#128194; Upload CSV file for Data Quality analysis
       <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="handleFileDQ(this.files[0])"/>
     </label>
+    <span class="upload-bar-hint" id="dqUploadFileName">No file chosen</span>
   </div>
   <div id="uploadStatus" class="upload-status hidden"></div>
   <div id="validationErrors" class="validation-errors hidden"></div>

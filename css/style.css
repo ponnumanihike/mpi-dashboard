@@ -153,10 +153,10 @@ body{background:var(--bg);min-height:100vh;color:var(--text);transition:backgrou
 /* ---- KPI ---- */
 .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:12px 18px;}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
-.kpi .label{font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.kpi .val{font-size:22px;font-weight:700;color:var(--text-strong);}
-.kpi .delta{font-size:11px;font-weight:600;margin-top:4px;}
-.kpi .cmp{margin-top:6px;border-top:1px solid var(--border);padding-top:5px;}
+.kpi .label{font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;order:1;}
+.kpi .val{font-size:22px;font-weight:700;color:var(--text-strong);order:2;}
+.kpi .delta{font-size:11px;font-weight:600;margin-top:4px;order:4;}
+.kpi .cmp{order:5;margin-top:6px;border-top:1px solid var(--border);padding-top:5px;}
 .kpi .cmp-row{display:flex;justify-content:space-between;gap:6px;font-size:10px;color:var(--text-muted);padding:1px 0;}
 .kpi .cmp-row b{color:var(--text-body);font-weight:600;white-space:nowrap;}
 .delta.up{color:var(--ok-fg);}.delta.dn{color:var(--err-fg);}.delta.neu{color:var(--text-muted);}
@@ -267,3 +267,18 @@ tr.rollup-row td{font-weight:600;background:var(--surface-hover);}
 .dqr-head{padding:4px 18px 0;}
 .dqr-head h2{margin:0;font-size:16px;color:var(--heading);}
 .dqr-head p{margin:2px 0 0;font-size:12px;color:var(--text-muted);}
+
+/* ---- COMPACT UPLOAD BAR ---- */
+.upload-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.upload-bar-left{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.upload-bar-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.upload-bar-btn:hover,.upload-bar-btn.drag-over{background:var(--primary-hover);}
+.upload-bar-hint{font-size:12px;color:var(--text-muted);white-space:nowrap;}
+.upload-bar-right{flex:1;min-width:200px;}
+.upload-bar-checkbox{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--text-body);cursor:pointer;line-height:1.4;}
+.upload-bar-checkbox input[type="checkbox"]{margin-top:2px;accent-color:var(--primary);width:14px;height:14px;flex-shrink:0;cursor:pointer;}
+.upload-bar .upload-status,.upload-bar .validation-errors{flex-basis:100%;margin-top:0;}
+
+/* ---- KPI DEFINITION LINE ---- */
+.kpi-definition{font-size:11px;color:var(--text-faint);margin:2px 0 6px 0;line-height:1.4;font-style:italic;font-weight:500;order:3;min-height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.kpi{display:flex;flex-direction:column;}

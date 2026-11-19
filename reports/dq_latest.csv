@@ -4,7 +4,6 @@ snapshot_date,client,area,check,issue_type,records,denominator,pct,severity,note
 2026-11-17,ProScan,Completeness,Birth date missing,Missing,22,11060824,0.0,Low,
 2026-11-17,ProScan,Completeness,Gender missing,Missing,350,11060824,0.0,Low,
 2026-11-17,ProScan,Completeness,Phone missing,Missing,6433376,11060824,58.16,Medium,Patient resources with no phone
-2026-11-17,ProScan,Completeness,Deceased status not captured,Missing,11060824,11060824,100.0,High,No patient is marked deceased
 2026-11-17,ProScan,Birth date,Birth date in the future,Invalid,648,11060802,0.01,High,
 2026-11-17,ProScan,Birth date,Age over 130,Invalid,867,11060802,0.01,High,
 2026-11-17,ProScan,Birth date,Age 100-130,Review,60766,11060802,0.55,Medium,"Mostly a natural age curve; ~2,400 likely placeholders"
