@@ -1,6 +1,6 @@
 # MPI MDM Dashboard
 
-A fully client-side HTML/CSS/JS dashboard for Master Data Management (MDM) reporting. 
+A fully client-side HTML/CSS/JS dashboard for Master Data Management (MDM) reporting.
 
 ## Always-visible data on Vercel (publish via git)
 
