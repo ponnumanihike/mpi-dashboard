@@ -275,7 +275,7 @@ tr.rollup-row td{font-weight:600;background:var(--surface-hover);}
 
 /* ---- COMPACT UPLOAD BAR ---- */
 .data-status-bar{padding:0 18px;}
-.data-status-bar .upload-bar-right{padding-top:10px;}
+.data-status-bar .upload-bar-right{padding:10px 0 4px;}
 .data-status-bar .upload-status{margin-top:12px;}
 .upload-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .upload-bar-left{display:flex;align-items:center;gap:10px;flex-shrink:0;}

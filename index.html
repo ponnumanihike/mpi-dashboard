@@ -18,14 +18,14 @@
 
 <!-- DATA SOURCE STATUS (files are uploaded on upload.html: triple-click the title) -->
 <div class="data-status-bar">
+  <div id="uploadStatus" class="upload-status hidden"></div>
+  <div id="validationErrors" class="validation-errors hidden"></div>
   <div class="upload-bar-right">
     <label class="upload-bar-checkbox">
       <input type="checkbox" id="combineUploads" checked onchange="loadPublishedData()"/>
       Combine with weeks from earlier uploads, so a new week is compared with the previous weeks automatically
     </label>
   </div>
-  <div id="uploadStatus" class="upload-status hidden"></div>
-  <div id="validationErrors" class="validation-errors hidden"></div>
 </div>
 
 <!-- FILTER TOOLBAR (shown after upload) -->
