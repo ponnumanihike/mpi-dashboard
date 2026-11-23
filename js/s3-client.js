@@ -28,27 +28,57 @@ const S3_API_AVAILABLE = location.protocol.startsWith('http') && !['5500', '5501
 let s3LastError =S3_API_AVAILABLE ? '' :
   'this page is open through Live Server / a file, which cannot reach S3. Run "npm run dev" and open http://localhost:3000';
 
+let s3Locked = false;   // the server wants DASHBOARD_KEY and we don't have a valid one
+
 /* Shown when neither S3 nor reports/ has data, so the page isn't silently empty */
 function s3ShowNoData(){
   if(typeof showStatus !== 'function') return;
-  if(s3LastError) showStatus('error', 'Could not load data from S3: ' + s3LastError);
+  if(s3Locked) showStatus('info', 'Locked — enter the dashboard access key above.');
+  else if(s3LastError) showStatus('error', 'Could not load data from S3: ' + s3LastError);
   else showStatus('info', 'No data yet. No report has been uploaded to S3.');
 }
 
 function getDashKey(){ try { return sessionStorage.getItem('mpiKey') || ''; } catch(e){ return ''; } }
 
+/* Inline access-key bar (same as the JHP dashboard), shown above the status message instead of a pop-up */
+function s3ShowGate(wrongKey){
+  let gate = document.getElementById('accessGate');
+  if(!gate){
+    gate = document.createElement('form');
+    gate.id = 'accessGate';
+    gate.className = 'access-gate';
+    gate.innerHTML =
+      '<span>&#128274; This dashboard is protected. Access key:</span>' +
+      '<input type="password" id="accessKey" autocomplete="current-password" required/>' +
+      '<button type="submit">Unlock</button>' +
+      '<span class="access-gate-err" id="accessGateErr"></span>';
+    gate.addEventListener('submit', e => {
+      e.preventDefault();
+      const k = document.getElementById('accessKey').value.trim();
+      if(!k) return;
+      try { sessionStorage.setItem('mpiKey', k); } catch(err){}
+      location.reload();   // reload so the page loads its data with the key
+    });
+    const bar = document.querySelector('.data-status-bar');
+    if(bar) bar.insertBefore(gate, bar.firstChild); else document.body.prepend(gate);
+  }
+  document.getElementById('accessGateErr').textContent = wrongKey ? 'That key was not accepted.' : '';
+  document.getElementById('accessKey').focus();
+}
+
 /* Newest CSV in uploads/<type>/ -> { text, name, modified } or null (nothing there / API unavailable) */
-async function s3Latest(type, retried){
-  if(!S3_API_AVAILABLE) return null;
+async function s3Latest(type){
+  if(!S3_API_AVAILABLE || s3Locked) return null;
   let res;
+  const key = getDashKey();
   try {
-    res = await fetch(S3_API + '?type=' + type + '&latest=1', { cache: 'no-store', headers: { 'x-dashboard-key': getDashKey() } });
+    res = await fetch(S3_API + '?type=' + type + '&latest=1', { cache: 'no-store', headers: { 'x-dashboard-key': key } });
   } catch(e){ return null; }
-  if(res.status === 401 && !retried){
-    const k = (prompt('Enter the dashboard access key') || '').trim();
-    if(!k) return null;
-    try { sessionStorage.setItem('mpiKey', k); } catch(e){}
-    return s3Latest(type, true);
+  if(res.status === 401){
+    s3Locked = true;
+    if(key){ try { sessionStorage.removeItem('mpiKey'); } catch(e){} }   // saved key is wrong; ask again
+    s3ShowGate(!!key);
+    return null;
   }
   if(!res.ok){
     let j = {};

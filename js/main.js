@@ -148,6 +148,7 @@ async function loadPublishedData(){
     if(st && !st.classList.contains('error')) st.textContent = st.textContent.replace(/^✓ CSV validated and loaded:/, '✓ Showing latest S3 report:') + ' · uploaded ' + new Date(fromS3.modified).toLocaleString();
     return;
   }
+  if(typeof s3Locked !== 'undefined' && s3Locked){ s3ShowNoData(); return; }   // protected: show only the access-key bar
   try {
     const saved = sessionStorage.getItem('mdm_csv_data');
     if(saved){

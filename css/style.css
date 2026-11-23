@@ -138,6 +138,11 @@ body{background:var(--bg);min-height:100vh;color:var(--text);transition:backgrou
 .upload-status{margin-top:10px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:500;}
 .upload-status.success{background:var(--ok-bg);color:var(--ok-fg);border:1px solid var(--ok-border);}
 .upload-status.error{background:var(--err-bg);color:var(--err-fg);border:1px solid var(--err-border);}
+.access-gate{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;border-radius:6px;background:var(--warn-bg);color:var(--warn-fg);border-left:4px solid #f59e0b;font-size:13px;}
+.access-gate input{padding:7px 10px;border:1px solid var(--input-border);border-radius:6px;background:var(--input-bg);color:var(--text);font-size:13px;width:220px;max-width:100%;}
+.access-gate button{background:var(--primary);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;}
+.access-gate button:hover{background:var(--primary-hover);}
+.access-gate-err{color:var(--err-fg);font-weight:600;}
 .upload-status.info{background:var(--info-bg);color:var(--info-fg);border:1px solid var(--info-border);}
 .validation-errors{margin-top:10px;padding:12px 14px;background:var(--alert-bg);border:1px solid var(--alert-border);border-radius:6px;}
 .validation-errors h4{font-size:13px;color:var(--alert-fg);margin-bottom:8px;}

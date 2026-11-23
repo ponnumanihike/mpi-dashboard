@@ -5,43 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>MPI · S3 Files</title>
+<script src="js/theme.js"></script>
 <style>
-:root{--bg:#f4f7fb;--card:#fff;--text:#12263f;--mut:#5b6b7f;--border:#dbe4ef;--ok:#1e9e6a;--bad:#d5453b}
+/* Light is the default; dark applies when <html data-theme="dark"> (js/theme.js, same choice as the dashboard) */
+:root{color-scheme:light;--bg:#f4f7fb;--card:#fff;--text:#12263f;--mut:#5b6b7f;--border:#dbe4ef;--ok:#1e9e6a;--bad:#d5453b;
+  --header:linear-gradient(120deg,#16324f,#1a6fd4);--input-bg:#fff;--heading:#0f4c93;--th-bg:#eef3f9;--primary:#1a6fd4;
+  --ok-bg:#e7f6ef;--ok-fg:#186c46;--err-bg:#fdeceb;--err-fg:#a1291f;--info-bg:#eef3f9;--info-fg:#31465e;
+  --del-bg:#fff;--del-border:#f1c4c0;--del-hover:#fdeceb}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0f172a;--card:#1e293b;--text:#e5e7eb;--mut:#94a3b8;--border:#334155;--ok:#4ade80;--bad:#f87171;
+  --header:linear-gradient(120deg,#0b1a33,#1e3a6b);--input-bg:#0f172a;--heading:#93c5fd;--th-bg:#273449;--primary:#2563d4;
+  --ok-bg:rgba(22,163,74,.18);--ok-fg:#4ade80;--err-bg:rgba(220,38,38,.18);--err-fg:#fca5a5;--info-bg:rgba(37,99,212,.15);--info-fg:#bfdbfe;
+  --del-bg:transparent;--del-border:rgba(248,113,113,.4);--del-hover:rgba(220,38,38,.18)}
 *{box-sizing:border-box}
 body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--text)}
-header{background:linear-gradient(120deg,#16324f,#1a6fd4);color:#fff;padding:13px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header{background:var(--header);color:#fff;padding:13px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 header h1{font-size:18px;margin:0}
 header a{color:#eaf1fb;font-size:13px;font-weight:600;margin-left:auto}
+.theme-toggle{background:rgba(255,255,255,0.14);color:#fff;border:1px solid rgba(255,255,255,0.22);border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+.theme-toggle:hover{background:rgba(255,255,255,0.24)}
 .wrap{max-width:760px;margin:0 auto;padding:24px 16px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
 label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:14px 0 5px}
 label:first-child{margin-top:0}
-input,select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:14px;color:var(--text)}
+input,select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);font-size:14px;color:var(--text)}
 .hint{font-size:12px;color:var(--mut);margin-top:4px}
-.btn{margin-top:18px;background:#1a6fd4;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer}
+.btn{margin-top:18px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer}
 .btn:disabled{opacity:.6;cursor:default}
 #msg{margin-top:14px;font-size:13px;border-radius:8px;padding:9px 13px;display:none}
-#msg.ok,#lmsg.ok{display:block;background:#e7f6ef;color:#186c46;border-left:4px solid var(--ok)}
-#msg.err,#lmsg.err{display:block;background:#fdeceb;color:#a1291f;border-left:4px solid var(--bad)}
-#msg.info{display:block;background:#eef3f9;color:#31465e;border-left:4px solid #1a6fd4}
+#msg.ok,#lmsg.ok{display:block;background:var(--ok-bg);color:var(--ok-fg);border-left:4px solid var(--ok)}
+#msg.err,#lmsg.err{display:block;background:var(--err-bg);color:var(--err-fg);border-left:4px solid var(--bad)}
+#msg.info{display:block;background:var(--info-bg);color:var(--info-fg);border-left:4px solid var(--primary)}
 #lmsg{font-size:13px;border-radius:8px;padding:9px 13px;margin-bottom:10px}
 #lmsg.mut{color:var(--mut);padding:4px 0}
 .lhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
-.lhead h2{font-size:15px;margin:0;color:#0f4c93}
+.lhead h2{font-size:15px;margin:0;color:var(--heading)}
 .tblwrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}
-th{background:#eef3f9;text-align:left;padding:7px 10px;border:1px solid var(--border);white-space:nowrap}
+th{background:var(--th-bg);text-align:left;padding:7px 10px;border:1px solid var(--border);white-space:nowrap}
 td{padding:7px 10px;border:1px solid var(--border);vertical-align:middle}
 td.num{text-align:right;white-space:nowrap}
 td.fname{word-break:break-all}
-.tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:10px;background:#e7f6ef;color:#186c46;white-space:nowrap}
-.del{background:#fff;color:var(--bad);border:1px solid #f1c4c0;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer}
-.del:hover{background:#fdeceb}
+.tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:10px;background:var(--ok-bg);color:var(--ok-fg);white-space:nowrap}
+.del{background:var(--del-bg);color:var(--bad);border:1px solid var(--del-border);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.del:hover{background:var(--del-hover)}
 .del:disabled{opacity:.5;cursor:default}
 </style>
 </head>
 <body>
-<header>
+<header class="topbar"><!-- .topbar: js/theme.js adds the Dark/Light mode button here -->
   <h1>HIKE HEALTH MPI · S3 Files</h1>
   <a href="index.html">← Back to dashboard</a>
 </header>

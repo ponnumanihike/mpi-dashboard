@@ -327,6 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(st && !st.classList.contains('error')) st.textContent += ' · uploaded ' + new Date(f.modified).toLocaleString();
         return;
       }
+      if(typeof s3Locked !== 'undefined' && s3Locked) break;   // protected: show only the access-key bar
       continue;
     }
     try {
