@@ -125,6 +125,8 @@ function processCSV(text, fname, opts){
   renderDashboard();
   // Keep every validated upload in history so it can be compared with later files
   if(!auto && typeof saveToHistory === 'function') saveToHistory(fname, rows, rowErrors.length);
+  // Validated uploads also go to s3://<bucket>/uploads/mdm/ so everyone sees them on next load
+  if(!auto && typeof s3Upload === 'function') s3Upload('mdm', text, fname);
 }
 
 /* ---------- Published data: shown automatically when the page opens ----------
@@ -145,6 +147,14 @@ async function loadPublishedData(){
       }
     }
   } catch(e){ /* fall through to published file */ }
+  // Newest MDM report in S3 (uploads/mdm/) wins over the file committed to reports/
+  const fromS3 = typeof s3Latest === 'function' ? await s3Latest('mdm') : null;
+  if(fromS3){
+    processCSV(fromS3.text, fromS3.name, { auto: true });
+    const st = document.getElementById('uploadStatus');
+    if(st && !st.classList.contains('error')) st.textContent = st.textContent.replace(/^✓ CSV validated and loaded:/, '✓ Showing latest S3 report:') + ' (upload a file to view a different one)';
+    return;
+  }
   try {
     const res = await fetch(PUBLISHED_CSV, { cache: 'no-cache' });
     if(!res.ok) return;                       // nothing published yet — wait for an upload

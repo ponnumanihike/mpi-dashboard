@@ -20,7 +20,16 @@ function handleFileDQ(file){
   if(!file.name.endsWith('.csv')){ showStatus('error','Only CSV files are accepted.'); return; }
   showStatus('info','Reading: ' + file.name + ' ...');
   const reader = new FileReader();
-  reader.onload = e => processCSVDQ(e.target.result, file.name);
+  reader.onload = e => {
+    const text = e.target.result;
+    processCSVDQ(text, file.name);
+    // Save valid uploads to S3: DQ reports -> uploads/dq/, MDM reports -> uploads/mdm/
+    const st = document.getElementById('uploadStatus');
+    if(typeof s3Upload === 'function' && st && !st.classList.contains('error')){
+      const headers = text.split(/\r?\n/)[0].split(',').map(normalizeHeader);
+      s3Upload(isDQReportHeaders(headers) ? 'dq' : 'mdm', text, file.name);
+    }
+  };
   reader.readAsText(file);
 }
 
@@ -315,7 +324,13 @@ function showStatus(type,msg){
  * A DQ report uploaded in this tab (restored by dq-report.js) takes priority. */
 document.addEventListener('DOMContentLoaded', async () => {
   try { if(sessionStorage.getItem(DQR_STORE)) return; } catch(e){}   // a DQ report uploaded in this tab wins
-  for(const [url, name] of [['../reports/dq_latest.csv','dq_latest.csv'], ['../reports/latest.csv','latest.csv']]){
+  // Order: S3 uploads/dq -> reports/dq_latest.csv -> S3 uploads/mdm -> reports/latest.csv
+  for(const [url, name] of [['s3:dq'], ['../reports/dq_latest.csv','dq_latest.csv'], ['s3:mdm'], ['../reports/latest.csv','latest.csv']]){
+    if(url.startsWith('s3:')){
+      const f = typeof s3Latest === 'function' ? await s3Latest(url.slice(3)) : null;
+      if(f){ processCSVDQ(f.text, f.name + ' (S3)'); return; }
+      continue;
+    }
     try {
       const res = await fetch(url, { cache: 'no-cache' });
       if(!res.ok) continue;

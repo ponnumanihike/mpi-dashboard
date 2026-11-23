@@ -26,6 +26,21 @@ Uploads are saved on the server in `data/` and reload automatically for everyone
 folder to any Node host (Render, Railway, a VM) and point `DATA_DIR` at a persistent disk.
 Without the server (Live Server / file://), data stays in the current browser only.
 
+## S3 storage (`s3://hike-mpi/uploads/mdm/` and `uploads/dq/`)
+
+1. Fill `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in `.env` (git-ignored; see `.env.example`).
+2. `node server.js` — the startup log shows whether S3 is enabled.
+
+With S3 enabled:
+- Both pages open with the newest CSV from S3 (Metrics: `uploads/mdm/`; Data Quality: `uploads/dq/`, then `uploads/mdm/`),
+  falling back to `reports/*.csv`.
+- A validated file uploaded in the browser is also saved to S3 — DQ reports to `uploads/dq/`, MDM reports to `uploads/mdm/`.
+- Command line: `node scripts/s3-push.js` uploads the project's MDM/DQ CSVs; `node scripts/s3-push.js --list` shows both folders;
+  `node scripts/s3-push.js mdm <file.csv>` uploads a specific file.
+
+Keys never reach the browser — all S3 calls go through the Node server. The IAM user needs
+`s3:ListBucket` on `hike-mpi` and `s3:GetObject` / `s3:PutObject` on `hike-mpi/uploads/*`.
+
 ## How to run in VS Code
 
 ### Option 1 — Live Server (recommended)
