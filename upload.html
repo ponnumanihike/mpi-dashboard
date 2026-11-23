@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>MPI · S3 Files</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#12263f;--mut:#5b6b7f;--border:#dbe4ef;--ok:#1e9e6a;--bad:#d5453b}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(120deg,#16324f,#1a6fd4);color:#fff;padding:13px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0}
+header a{color:#eaf1fb;font-size:13px;font-weight:600;margin-left:auto}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:14px 0 5px}
+label:first-child{margin-top:0}
+input,select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:14px;color:var(--text)}
+.hint{font-size:12px;color:var(--mut);margin-top:4px}
+.btn{margin-top:18px;background:#1a6fd4;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:default}
+#msg{margin-top:14px;font-size:13px;border-radius:8px;padding:9px 13px;display:none}
+#msg.ok,#lmsg.ok{display:block;background:#e7f6ef;color:#186c46;border-left:4px solid var(--ok)}
+#msg.err,#lmsg.err{display:block;background:#fdeceb;color:#a1291f;border-left:4px solid var(--bad)}
+#msg.info{display:block;background:#eef3f9;color:#31465e;border-left:4px solid #1a6fd4}
+#lmsg{font-size:13px;border-radius:8px;padding:9px 13px;margin-bottom:10px}
+#lmsg.mut{color:var(--mut);padding:4px 0}
+.lhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.lhead h2{font-size:15px;margin:0;color:#0f4c93}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:#eef3f9;text-align:left;padding:7px 10px;border:1px solid var(--border);white-space:nowrap}
+td{padding:7px 10px;border:1px solid var(--border);vertical-align:middle}
+td.num{text-align:right;white-space:nowrap}
+td.fname{word-break:break-all}
+.tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:10px;background:#e7f6ef;color:#186c46;white-space:nowrap}
+.del{background:#fff;color:var(--bad);border:1px solid #f1c4c0;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.del:hover{background:#fdeceb}
+.del:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<header>
+  <h1>HIKE HEALTH MPI · S3 Files</h1>
+  <a href="index.html">← Back to dashboard</a>
+</header>
+<div class="wrap">
+  <form class="card" id="f" onsubmit="upload();return false;">
+    <label for="ukey">Upload key</label>
+    <input id="ukey" type="password" autocomplete="new-password" required onchange="keyChanged()">
+    <label for="type">Report type</label>
+    <select id="type" onchange="loadList()">
+      <option value="mdm">MDM weekly report → MDM Metrics &amp; Trends</option>
+      <option value="dq">Data quality report → Data Quality</option>
+    </select>
+    <label for="file">CSV file</label>
+    <input id="file" type="file" accept=".csv,text/csv" required>
+    <div class="hint">CSV only, up to 4 MB. Files are stored privately in S3; existing files are never overwritten.</div>
+    <button class="btn" id="go" type="submit">Upload</button>
+    <div id="msg"></div>
+  </form>
+
+  <div class="card">
+    <div class="lhead"><h2 id="ltitle">Uploaded files</h2><span id="lcount" class="hint"></span></div>
+    <div id="lmsg" class="mut"></div>
+    <div class="tblwrap"><table id="ltable" style="display:none">
+      <thead><tr><th>File</th><th>Uploaded</th><th>Size</th><th></th></tr></thead>
+      <tbody id="lbody"></tbody>
+    </table></div>
+  </div>
+</div>
+<script>
+var MAX_BYTES=4*1024*1024,TYPE_NAMES={mdm:'MDM weekly reports',dq:'Data quality files'};
+/* The upload key is never stored: it must be entered each time this page is opened. */
+try{sessionStorage.removeItem('mpiUploadKey');}catch(e){}   // drop a key saved by the earlier version
+document.getElementById('ukey').value='';
+function say(text,cls){var m=document.getElementById('msg');m.className=cls;m.textContent=text;}
+function sayList(text,cls){var m=document.getElementById('lmsg');m.className=cls||'mut';m.textContent=text;m.style.display=text?'block':'none';}
+function currentKey(){return document.getElementById('ukey').value.trim();}
+function rememberKey(k){}   /* key is not kept between visits */
+/* Returning with the browser Back button restores the page from cache with the key still typed in; clear it */
+window.addEventListener('pageshow',function(e){if(e.persisted){document.getElementById('ukey').value='';document.getElementById('file').value='';say('','');loadList();}});
+function apiJson(r){return r.json().catch(function(){return {};}).then(function(j){if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j;});}
+
+/* Light structural check so a wrong file is caught before it reaches the dashboard */
+function checkCsv(type,text){var lines=text.split(/\r?\n/).filter(function(l){return l.replace(/[,\s]/g,'');});
+  if(!lines.length)return 'The file is empty.';
+  if(type==='mdm'){if(!lines.some(function(l){return /golden/i.test(l);}))return 'This does not look like an MDM report (needs a golden_recs column or a Golden section).';}
+  else{var head=lines[0].toLowerCase();if(!/check/.test(head)||!/issue_type/.test(head)||!/denominator/.test(head))return 'This does not look like a data quality report (header needs check, issue_type and denominator).';}
+  return null;}
+
+function upload(){var key=currentKey(),type=document.getElementById('type').value,file=document.getElementById('file').files[0],go=document.getElementById('go');
+  if(!file)return;
+  if(!/\.csv$/i.test(file.name))return say('Please choose a .csv file.','err');
+  if(file.size<1||file.size>MAX_BYTES)return say('The file must be between 1 byte and 4 MB.','err');
+  go.disabled=true;say('Checking file…','info');
+  file.text().then(function(text){var problem=checkCsv(type,text);if(problem)throw new Error(problem);
+    say('Requesting upload link…','info');
+    return fetch('/api/csv-url',{method:'POST',headers:{'Content-Type':'application/json','x-upload-key':key},body:JSON.stringify({type:type,filename:file.name,size:file.size})});
+  }).then(apiJson).then(function(sig){rememberKey(key);
+    say('Uploading…','info');
+    var fd=new FormData();Object.keys(sig.fields).forEach(function(k){fd.append(k,sig.fields[k]);});fd.append('file',file);
+    return fetch(sig.url,{method:'POST',body:fd}).then(function(r){if(!r.ok)throw new Error('S3 rejected the upload (HTTP '+r.status+').');return sig;});
+  }).then(function(sig){say('Uploaded '+file.name+'. Refresh the dashboard to see it.','ok');document.getElementById('file').value='';loadList();
+  }).catch(function(e){say(e instanceof TypeError?'Network error, or the S3 bucket CORS settings do not allow this site ('+location.origin+'). The file may still have been saved; check the list below.':e.message,'err');loadList();
+  }).then(function(){go.disabled=false;});}
+
+/* ---------- Uploaded files list ---------- */
+// Stored names look like 2026-10-02T10-29-54-213Z_c6910c_JHP_MDM_Week3.csv; show the original part
+function displayName(name){return name.replace(/^\d{4}-\d{2}-\d{2}T[\d-]+Z_[0-9a-f]{6}_/,'');}
+function fmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';}
+var listSeq=0,listKey=null;
+// Leaving the key box fires 'change'; only reload when the key really changed, so a click on Delete isn't lost to a re-render
+function keyChanged(){if(currentKey()!==listKey)loadList();}
+function loadList(note){var key=currentKey(),type=document.getElementById('type').value,seq=++listSeq;listKey=key;
+  document.getElementById('ltitle').textContent='Uploaded files · '+TYPE_NAMES[type];document.getElementById('lcount').textContent='';
+  document.getElementById('ltable').style.display='none';
+  if(!key){sayList('Enter the upload key to see the uploaded files.');return;}
+  sayList('Loading…');
+  fetch('/api/csv-url?type='+type+'&manage=1',{cache:'no-store',headers:{'x-upload-key':key}}).then(apiJson).then(function(j){
+    if(seq!==listSeq)return;   // a newer request (type/key changed) has started
+    rememberKey(key);renderList(type,j.files);if(note)sayList(note,'ok');
+  }).catch(function(e){if(seq!==listSeq)return;sayList(e instanceof TypeError?'Could not reach the server.':e.message,'err');});}
+
+function renderList(type,files){var body=document.getElementById('lbody');body.innerHTML='';
+  document.getElementById('lcount').textContent=files.length+' file'+(files.length===1?'':'s');
+  if(!files.length){sayList('No files uploaded yet.');return;}
+  sayList('');
+  files.slice().reverse().forEach(function(f,i){   // newest first
+    var tr=document.createElement('tr'),name=displayName(f.name);
+    var td1=document.createElement('td');td1.className='fname';td1.textContent=name;td1.title=f.key;
+    if(i===0){   /* both pages show the newest file of their type */var tag=document.createElement('span');tag.className='tag';tag.textContent='Shown on dashboard';td1.appendChild(tag);}
+    var td2=document.createElement('td');td2.className='num';td2.textContent=new Date(f.modified).toLocaleString();
+    var td3=document.createElement('td');td3.className='num';td3.textContent=fmtSize(f.size);
+    var td4=document.createElement('td');var b=document.createElement('button');b.type='button';b.className='del';b.textContent='Delete';
+    b.onclick=function(){deleteFile(f,name,b);};td4.appendChild(b);
+    tr.appendChild(td1);tr.appendChild(td2);tr.appendChild(td3);tr.appendChild(td4);body.appendChild(tr);});
+  document.getElementById('ltable').style.display='table';}
+
+function deleteFile(f,name,btn){
+  if(!confirm('Delete "'+name+'"?\n\nUploaded '+new Date(f.modified).toLocaleString()+'.\nIt will be removed from the dashboard. This cannot be undone.'))return;
+  btn.disabled=true;btn.textContent='Deleting…';
+  fetch('/api/csv-url?key='+encodeURIComponent(f.key),{method:'DELETE',headers:{'x-upload-key':currentKey()}}).then(apiJson).then(function(){
+    loadList('Deleted '+name+'.');
+  }).catch(function(e){btn.disabled=false;btn.textContent='Delete';alert('Could not delete '+name+': '+(e instanceof TypeError?'could not reach the server.':e.message));});}
+
+/* Live Server (VS Code, port 5500) and file:// have no /api/csv-url, and Live Server reloads this page whenever a file
+   in the folder changes. Say so instead of failing silently. */
+if(!location.protocol.startsWith('http')||['5500','5501'].indexOf(location.port)>=0){
+  document.getElementById('go').disabled=true;
+  say('This page is open through Live Server, which cannot reach S3. Run "npm run dev" and open http://localhost:3000/upload.html','err');
+  sayList('Open http://localhost:3000/upload.html to see the uploaded files.','err');
+}else{loadList();}
+</script>
+</body>
+</html>

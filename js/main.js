@@ -110,7 +110,8 @@ function processCSV(text, fname, opts){
 
   // Combine with the weeks already uploaded so each new week is compared with the earlier ones
   const combine = document.getElementById('combineUploads');
-  const doCombine = !auto && (!combine || combine.checked);
+  const fromS3 = !!(opts && opts.fromS3);   // newest file from S3 counts as the new upload
+  const doCombine = (!auto || fromS3) && (!combine || combine.checked);
   const earlierWeeks = doCombine ? weeksFromHistoryNotIn(rows) : [];
   allData = doCombine ? mergeWithHistory(rows) : rows;
   if(earlierWeeks.length){
@@ -125,45 +126,48 @@ function processCSV(text, fname, opts){
   renderDashboard();
   // Keep every validated upload in history so it can be compared with later files
   if(!auto && typeof saveToHistory === 'function') saveToHistory(fname, rows, rowErrors.length);
-  // Validated uploads also go to s3://<bucket>/uploads/mdm/ so everyone sees them on next load
-  if(!auto && typeof s3Upload === 'function') s3Upload('mdm', text, fname);
+  // S3 files go into history once (not on every page load), so the next S3 upload is combined with them
+  if(fromS3 && typeof saveToHistory === 'function' && typeof loadHistory === 'function' &&
+     !loadHistory().some(e => e.fname === fname && e.rowCount === rows.length)){
+    saveToHistory(fname, rows, rowErrors.length);
+  }
 }
 
-/* ---------- Published data: shown automatically when the page opens ----------
- * Commit the CSV to reports/latest.csv and push; Vercel redeploys and everyone sees it.
- * A file uploaded in this tab takes priority until the tab is closed. */
+/* ---------- Data shown automatically when the page opens ----------
+ * 1. newest file in S3 uploads/mdm/ (uploaded on upload.html, opened by triple-clicking the title)
+ * 2. a report loaded from upload history in this tab
+ * 3. reports/latest.csv committed to the repo */
 const PUBLISHED_CSV = 'reports/latest.csv';
 
 async function loadPublishedData(){
+  // Newest MDM report in S3 (uploads/mdm/, via /api/csv-url)
+  const fromS3 = typeof s3Latest === 'function' ? await s3Latest('mdm') : null;
+  if(fromS3){
+    processCSV(fromS3.text, fromS3.name, { auto: true, fromS3: true });
+    const st = document.getElementById('uploadStatus');
+    if(st && !st.classList.contains('error')) st.textContent = st.textContent.replace(/^✓ CSV validated and loaded:/, '✓ Showing latest S3 report:') + ' · uploaded ' + new Date(fromS3.modified).toLocaleString();
+    return;
+  }
   try {
     const saved = sessionStorage.getItem('mdm_csv_data');
     if(saved){
       const rows = JSON.parse(saved);
       if(rows.length){
         allData = rows;
-        showStatus('success', `Showing "${sessionStorage.getItem('mdm_csv_name') || 'uploaded file'}" (uploaded in this tab) — ${rows.length} rows`);
+        showStatus('success', `Showing "${sessionStorage.getItem('mdm_csv_name') || 'uploaded file'}" (loaded from upload history in this tab) — ${rows.length} rows`);
         renderDashboard();
         return;
       }
     }
   } catch(e){ /* fall through to published file */ }
-  // Newest MDM report in S3 (uploads/mdm/) wins over the file committed to reports/
-  const fromS3 = typeof s3Latest === 'function' ? await s3Latest('mdm') : null;
-  if(fromS3){
-    processCSV(fromS3.text, fromS3.name, { auto: true });
-    const st = document.getElementById('uploadStatus');
-    if(st && !st.classList.contains('error')) st.textContent = st.textContent.replace(/^✓ CSV validated and loaded:/, '✓ Showing latest S3 report:') + ' (upload a file to view a different one)';
-    return;
-  }
   try {
     const res = await fetch(PUBLISHED_CSV, { cache: 'no-cache' });
-    if(!res.ok) return;                       // nothing published yet — wait for an upload
-    const text = await res.text();
-    if(!text.trim()) return;
+    const text = res.ok ? await res.text() : '';
+    if(!text.trim()){ if(typeof s3ShowNoData === 'function') s3ShowNoData(); return; }   // nothing anywhere yet
     processCSV(text, 'latest.csv', { auto: true });
     const st = document.getElementById('uploadStatus');
-    if(st && !st.classList.contains('error')) st.textContent = st.textContent.replace(/^✓ CSV validated and loaded:/, '✓ Showing published data:') + ' (upload a file to view a different one)';
-  } catch(e){ /* offline or file:// — ignore */ }
+    if(st && !st.classList.contains('error')) st.textContent = st.textContent.replace(/^✓ CSV validated and loaded:/, '✓ Showing published data:');
+  } catch(e){ if(typeof s3ShowNoData === 'function') s3ShowNoData(); }
 }
 document.addEventListener('DOMContentLoaded', loadPublishedData);
 

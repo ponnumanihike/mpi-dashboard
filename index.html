@@ -13,22 +13,14 @@
 <div class="topbar">
   <div class="topbar-title"><span class="spark">HIKE HEALTH</span> MPI DASHBOARD</div>
   <a href="index.html" class="tab active">MDM Metrics &amp; Trends</a>
-  <a href="pages/data-quality.html" class="tab inactive" id="dq-tab">Data Quality</a>
-  <button class="refresh-btn" onclick="location.reload()">&#x21bb; Refresh</button>
+  <a href="pages/data-quality.html" class="tab inactive" id="dq-tab">Data Quality</a>  <button class="refresh-btn" onclick="location.reload()">&#x21bb; Refresh</button>
 </div>
 
-<!-- CSV UPLOAD AREA -->
-<div class="upload-bar">
-  <div class="upload-bar-left">
-    <label class="upload-bar-btn" id="uploadBox" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
-      &#128194; Upload CSV file for MDM analysis
-      <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="handleFile(this.files[0])"/>
-    </label>
-    <span class="upload-bar-hint" id="uploadFileName">No file chosen</span>
-  </div>
+<!-- DATA SOURCE STATUS (files are uploaded on upload.html: triple-click the title) -->
+<div class="data-status-bar">
   <div class="upload-bar-right">
     <label class="upload-bar-checkbox">
-      <input type="checkbox" id="combineUploads" checked/>
+      <input type="checkbox" id="combineUploads" checked onchange="loadPublishedData()"/>
       Combine with weeks from earlier uploads, so a new week is compared with the previous weeks automatically
     </label>
   </div>
@@ -313,7 +305,6 @@
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="js/store.js"></script>
 <script src="js/mdm-format.js"></script>
 <script src="js/s3-client.js"></script>
 <script src="js/main.js"></script>

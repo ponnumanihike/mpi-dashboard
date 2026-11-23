@@ -1,24 +1,24 @@
-/* Zero-dependency server: serves the dashboard AND stores uploaded data in data/store.json,
- * so everyone who opens the link sees the same saved data.
+/* Local server: serves the dashboard, runs the same S3 API that Vercel runs (api/csv-url.js),
+ * and stores shared data in data/*.json.
  *
- *   node server.js            -> http://localhost:3000   (PORT env var to change)
+ *   npm install   (once)
+ *   npm run dev   -> http://localhost:3000   (PORT env var to change; reads .env)
  *
- * API:  GET /api/store/<key>   -> saved JSON (or null)
+ * API:  /api/csv-url           -> api/csv-url.js (S3 read / upload / delete; see that file)
+ *       GET /api/store/<key>   -> saved JSON (or null)
  *       PUT /api/store/<key>   -> save JSON body
  * Keys: history (upload history), dq (data quality report)
- *
- * S3 (configured in .env, see .env.example):
- *       GET /api/s3/status               -> { enabled, bucket, mdm, dq }
- *       GET /api/s3/latest/<mdm|dq>      -> newest CSV in uploads/<folder>/ (file name in X-File-Name)
- *       PUT /api/s3/upload/<mdm|dq>?name=<file.csv>  -> store CSV body in uploads/<folder>/
  */
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const s3 = require('./lib/s3');          // also loads .env
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+try { process.loadEnvFile(path.join(ROOT, '.env')); } catch (e) { /* no .env: S3 API answers 503 */ }
+const { default: csvUrl } = await import('./api/csv-url.js');
 
 const PORT = process.env.PORT || 3000;
-const ROOT = __dirname;
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const KEYS = new Set(['history', 'dq']);
 const MAX_BODY = 50 * 1024 * 1024;
@@ -33,46 +33,27 @@ function send(res, code, body, type) {
   res.end(body);
 }
 
-function readBody(req, cb) {
-  let size = 0; const chunks = [];
-  req.on('data', c => { size += c.length; if (size > MAX_BODY) { req.destroy(); } else chunks.push(c); });
-  req.on('end', () => cb(Buffer.concat(chunks)));
-}
-
-function handleS3(req, res, url) {
-  if (url.pathname === '/api/s3/status') {
-    const c = s3.config();
-    return send(res, 200, JSON.stringify({ enabled: s3.isConfigured(), bucket: c.bucket, mdm: s3.folderPrefix('mdm'), dq: s3.folderPrefix('dq') }));
-  }
-  const m = url.pathname.match(/^\/api\/s3\/(latest|upload)\/(mdm|dq)$/);
-  if (!m) return send(res, 404, '{"error":"not found"}');
-  if (!s3.isConfigured()) return send(res, 503, '{"error":"S3 not configured"}');
-  const [, action, kind] = m;
-  const fail = e => { console.error(e.message); send(res, 502, JSON.stringify({ error: e.message })); };
-
-  if (action === 'latest' && req.method === 'GET') {
-    s3.latestCsv(kind).then(f => {
-      if (!f) return send(res, 404, '{"error":"no CSV in folder"}');
-      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'no-store',
-        'X-File-Name': encodeURIComponent(path.basename(f.key)), 'X-Last-Modified': f.lastModified });
-      res.end(f.body);
-    }, fail);
-    return;
-  }
-  if (action === 'upload' && req.method === 'PUT') {
-    readBody(req, body => {
-      if (!body.length) return send(res, 400, '{"error":"empty file"}');
-      s3.uploadCsv(kind, url.searchParams.get('name'), body)
-        .then(key => send(res, 200, JSON.stringify({ ok: true, key, url: `s3://${s3.config().bucket}/${key}` })), fail);
-    });
-    return;
-  }
-  return send(res, 405, '{"error":"method not allowed"}');
+/* Run a Vercel-style handler (req.query, req.body, res.status().json()) on a plain Node request. */
+function runVercelHandler(handler, req, res, url) {
+  const chunks = []; let size = 0;
+  req.on('data', c => { size += c.length; if (size > MAX_BODY) req.destroy(); else chunks.push(c); });
+  req.on('end', async () => {
+    const started = Date.now();
+    const text = Buffer.concat(chunks).toString('utf8');
+    req.query = Object.fromEntries(url.searchParams);
+    req.body = text;
+    if (text && /application\/json/i.test(req.headers['content-type'] || '')) { try { req.body = JSON.parse(text); } catch (e) {} }
+    res.status = code => { res.statusCode = code; return res; };
+    res.json = obj => { if (!res.getHeader('Content-Type')) res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify(obj)); return res; };
+    try { await handler(req, res); }
+    catch (e) { console.error(e); if (!res.headersSent) res.status(500).json({ error: 'Internal error' }); }
+    console.log(`${req.method} ${url.pathname}${url.search} -> ${res.statusCode} (${Date.now() - started} ms)`);
+  });
 }
 
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
-  if (url.pathname.startsWith('/api/s3/')) return handleS3(req, res, url);
+  if (url.pathname === '/api/csv-url') return runVercelHandler(csvUrl, req, res, url);
   const m = url.pathname.match(/^\/api\/store\/(\w+)$/);
 
   if (m) {
@@ -104,16 +85,16 @@ http.createServer((req, res) => {
   if (rel === '/') rel = '/index.html';
   const file = path.normalize(path.join(ROOT, rel));
   const relPath = path.relative(ROOT, file);
-  const blocked = /^(data|node_modules|lib|scripts)([\\/]|$)/.test(relPath) || /(^|[\\/])\./.test(relPath) || /server\.js$/.test(file);   // dotfiles (.env, .git) never served
+  const blocked = /^(data|node_modules|api)([\\/]|$)/.test(relPath) || /(^|[\\/])\./.test(relPath) || /server\.js$/.test(file);   // dotfiles (.env, .git) never served
   if (!file.startsWith(ROOT) || blocked) return send(res, 403, 'Forbidden', 'text/plain');
   fs.readFile(file, (err, buf) => {
     if (err) return send(res, 404, 'Not found', 'text/plain');
     send(res, 200, buf, TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream');
   });
 }).listen(PORT, '0.0.0.0', () => {
-  console.log(`MDM dashboard running at http://localhost:${PORT}  (data saved in ${DATA_DIR})`);
-  const c = s3.config();
-  console.log(s3.isConfigured()
-    ? `S3 enabled: s3://${c.bucket}/${s3.folderPrefix('mdm')}  and  s3://${c.bucket}/${s3.folderPrefix('dq')}  (${c.region})`
-    : 'S3 disabled: fill AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in .env to enable');
+  console.log(`MPI dashboard running at http://localhost:${PORT}  (data saved in ${DATA_DIR})`);
+  console.log(process.env.S3_ACCESS_KEY_ID
+    ? `S3: s3://${process.env.S3_BUCKET || 'hike-mpi'}/uploads/{mdm,dq}/  (${process.env.S3_REGION || 'ap-south-1'})`
+    : 'S3 disabled: set S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY in .env');
+  if (!process.env.UPLOAD_KEY) console.log('Uploads disabled: set UPLOAD_KEY in .env');
 });

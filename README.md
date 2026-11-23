@@ -12,8 +12,8 @@ Both pages load published data automatically when they open:
 | `reports/dq_latest.csv` (optional) | Data Quality page (used before `latest.csv`) |
 
 To update: replace the file (keep the same name), then `git add reports && git commit -m "Update data" && git push`.
-Vercel redeploys in about a minute and everyone sees the new data. A file uploaded in the browser still
-works and takes priority in that tab until the tab is closed.
+Vercel redeploys in about a minute and everyone sees the new data. Files uploaded to S3 take priority.
+The dashboard pages have no upload button; all uploads, the file list and deletes are on `upload.html`, opened by clicking the **MPI DASHBOARD** title 3 times within 1.5 s (no visible link; the page needs `UPLOAD_KEY`).
 
 ## Shared, persistent data with the Node server
 
@@ -28,18 +28,32 @@ Without the server (Live Server / file://), data stays in the current browser on
 
 ## S3 storage (`s3://hike-mpi/uploads/mdm/` and `uploads/dq/`)
 
-1. Fill `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in `.env` (git-ignored; see `.env.example`).
-2. `node server.js` — the startup log shows whether S3 is enabled.
+Same setup as the JHP dashboard: `api/csv-url.js` is a Vercel serverless function and the only code that talks to S3.
+The bucket stays private and the browser never gets an S3 link.
 
-With S3 enabled:
-- Both pages open with the newest CSV from S3 (Metrics: `uploads/mdm/`; Data Quality: `uploads/dq/`, then `uploads/mdm/`),
-  falling back to `reports/*.csv`.
-- A validated file uploaded in the browser is also saved to S3 — DQ reports to `uploads/dq/`, MDM reports to `uploads/mdm/`.
-- Command line: `node scripts/s3-push.js` uploads the project's MDM/DQ CSVs; `node scripts/s3-push.js --list` shows both folders;
-  `node scripts/s3-push.js mdm <file.csv>` uploads a specific file.
+| | |
+|---|---|
+| **Read** | Metrics page shows the newest CSV in `uploads/mdm/`; Data Quality shows the newest in `uploads/dq/` (then `uploads/mdm/`). Falls back to `reports/*.csv`. |
+| **Upload / list / delete** | `upload.html`: click the dashboard title 3 times quickly. Needs `UPLOAD_KEY`. Uploads go browser → S3 with a 2-minute signed form (CSV only, ≤ 4 MB, stored as `<timestamp>_<random>_<name>.csv`). Delete cannot be undone unless bucket versioning is on. |
 
-Keys never reach the browser — all S3 calls go through the Node server. The IAM user needs
-`s3:ListBucket` on `hike-mpi` and `s3:GetObject` / `s3:PutObject` on `hike-mpi/uploads/*`.
+**Environment variables** (`.env` locally, and Vercel → Settings → Environment Variables, then redeploy):
+`S3_BUCKET=hike-mpi`, `S3_REGION=ap-south-1`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `UPLOAD_KEY`, optional `DASHBOARD_KEY` (viewing password).
+
+**Local:** `npm install` once, then `npm run dev` and open http://localhost:3000. Live Server (:5500) has no API and only shows `reports/`.
+
+**AWS (once):** IAM policy for the `VercelS3` user:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "ListUploadFolders", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::hike-mpi",
+      "Condition": { "StringLike": { "s3:prefix": ["uploads/mdm/*", "uploads/dq/*"] } } },
+    { "Sid": "ReadWriteDeleteUploadFiles", "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": ["arn:aws:s3:::hike-mpi/uploads/mdm/*", "arn:aws:s3:::hike-mpi/uploads/dq/*"] }
+  ]
+}
+```
+Bucket CORS (needed for uploads only): `AllowedOrigins` = your Vercel URL and `http://localhost:3000`, `AllowedMethods` = `POST`, `AllowedHeaders` = `*`.
 
 ## How to run in VS Code
 

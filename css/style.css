@@ -269,6 +269,9 @@ tr.rollup-row td{font-weight:600;background:var(--surface-hover);}
 .dqr-head p{margin:2px 0 0;font-size:12px;color:var(--text-muted);}
 
 /* ---- COMPACT UPLOAD BAR ---- */
+.data-status-bar{padding:0 18px;}
+.data-status-bar .upload-bar-right{padding-top:10px;}
+.data-status-bar .upload-status{margin-top:12px;}
 .upload-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .upload-bar-left{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .upload-bar-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s;}

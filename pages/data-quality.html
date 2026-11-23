@@ -12,19 +12,11 @@
 <div class="topbar">
   <div class="topbar-title"><span class="spark">HIKE HEALTH</span> MPI DASHBOARD</div>
   <a href="../index.html" class="tab inactive">MDM Metrics &amp; Trends</a>
-  <a href="data-quality.html" class="tab active">Data Quality</a>
-  <button class="refresh-btn" onclick="location.reload()">&#x21bb; Refresh</button>
+  <a href="data-quality.html" class="tab active">Data Quality</a>  <button class="refresh-btn" onclick="location.reload()">&#x21bb; Refresh</button>
 </div>
 
-<!-- UPLOAD SECTION (DQ page) -->
-<div class="upload-bar">
-  <div class="upload-bar-left">
-    <label class="upload-bar-btn" id="uploadBox" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
-      &#128194; Upload CSV file for Data Quality analysis
-      <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="handleFileDQ(this.files[0])"/>
-    </label>
-    <span class="upload-bar-hint" id="dqUploadFileName">No file chosen</span>
-  </div>
+<!-- DATA SOURCE STATUS (files are uploaded on upload.html: triple-click the title) -->
+<div class="data-status-bar">
   <div id="uploadStatus" class="upload-status hidden"></div>
   <div id="validationErrors" class="validation-errors hidden"></div>
 </div>

@@ -20,16 +20,7 @@ function handleFileDQ(file){
   if(!file.name.endsWith('.csv')){ showStatus('error','Only CSV files are accepted.'); return; }
   showStatus('info','Reading: ' + file.name + ' ...');
   const reader = new FileReader();
-  reader.onload = e => {
-    const text = e.target.result;
-    processCSVDQ(text, file.name);
-    // Save valid uploads to S3: DQ reports -> uploads/dq/, MDM reports -> uploads/mdm/
-    const st = document.getElementById('uploadStatus');
-    if(typeof s3Upload === 'function' && st && !st.classList.contains('error')){
-      const headers = text.split(/\r?\n/)[0].split(',').map(normalizeHeader);
-      s3Upload(isDQReportHeaders(headers) ? 'dq' : 'mdm', text, file.name);
-    }
-  };
+  reader.onload = e => processCSVDQ(e.target.result, file.name);
   reader.readAsText(file);
 }
 
@@ -319,16 +310,23 @@ function showStatus(type,msg){
   el.classList.remove('hidden');
 }
 
-/* ---------- Published data: shown automatically when the page opens ----------
- * Uses reports/dq_latest.csv (data quality report) if present, else reports/latest.csv.
- * A DQ report uploaded in this tab (restored by dq-report.js) takes priority. */
+/* ---------- Data shown automatically when the page opens ----------
+ * Order: S3 uploads/dq (uploaded on upload.html, opened by triple-clicking the title) -> report restored in this tab by dq-report.js
+ *        -> reports/dq_latest.csv -> S3 uploads/mdm -> reports/latest.csv */
 document.addEventListener('DOMContentLoaded', async () => {
-  try { if(sessionStorage.getItem(DQR_STORE)) return; } catch(e){}   // a DQ report uploaded in this tab wins
-  // Order: S3 uploads/dq -> reports/dq_latest.csv -> S3 uploads/mdm -> reports/latest.csv
-  for(const [url, name] of [['s3:dq'], ['../reports/dq_latest.csv','dq_latest.csv'], ['s3:mdm'], ['../reports/latest.csv','latest.csv']]){
+  for(const [url, name] of [['s3:dq'], ['tab'], ['../reports/dq_latest.csv','dq_latest.csv'], ['s3:mdm'], ['../reports/latest.csv','latest.csv']]){
+    if(url === 'tab'){
+      try { if(sessionStorage.getItem(DQR_STORE)) return; } catch(e){}   // already shown by dq-report.js
+      continue;
+    }
     if(url.startsWith('s3:')){
       const f = typeof s3Latest === 'function' ? await s3Latest(url.slice(3)) : null;
-      if(f){ processCSVDQ(f.text, f.name + ' (S3)'); return; }
+      if(f){
+        processCSVDQ(f.text, f.name + ' (S3)');
+        const st = document.getElementById('uploadStatus');
+        if(st && !st.classList.contains('error')) st.textContent += ' · uploaded ' + new Date(f.modified).toLocaleString();
+        return;
+      }
       continue;
     }
     try {
@@ -340,4 +338,5 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     } catch(e){ /* try next */ }
   }
+  if(typeof s3ShowNoData === 'function') s3ShowNoData();   // nothing anywhere yet
 });
