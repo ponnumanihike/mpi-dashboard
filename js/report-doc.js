@@ -323,22 +323,56 @@ function rdProgressBlock(ctx, t){
 function rdBySourceTable(ctx, t, w){
   const srcs = ctx.sources(t, w).sort((a,b) => b.src - a.src);
   if(!srcs.length) return '';
-  const rows = srcs.map(s => [
-    { t: s.label, b: true },
-    rdN(s.src), rdN(s.gold),
-    s.gold > 0 ? `${rdN(s.sing)} (${rdPct(s.sing/s.gold*100)})` : rdN(s.sing)
-  ]);
+  const showShared = !!rdSharedGolden(ctx, t, w);
+  const rows = srcs.map(s => {
+    const gold = Number(s.gold) || 0, sing = Number(s.sing) || 0;
+    const row = [
+      { t: s.label, b: true },
+      rdN(s.src), rdN(s.gold),
+      gold > 0 ? `${rdN(sing)} (${rdPct(sing/gold*100)})` : rdN(sing)
+    ];
+    if(showShared) row.push(gold > 0 ? `${rdN(gold - sing)} (${rdPct((gold - sing)/gold*100)})` : '—');
+    return row;
+  });
+  const heads = ['Source','Source records','Golden records','Singletons (single source system)'];
+  if(showShared) heads.push('Also in another source');
   return rdH4(`${t} by source in ${ctx.info[ctx.weeks.indexOf(w)].period}`)
-    + rdTable(['Source','Source records','Golden records','Singletons (single source system)'], rows);
+    + rdTable(heads, rows);
 }
+
+/* Up to this many sources, every source's share is written out in the sentence.
+ * Above it, the sentence summarises and the by-source table carries each figure. */
+const RD_SHARING_INLINE_MAX = 6;
+const RD_SHARING_TOP = 5;
 
 function rdSharingParagraph(ctx, t){
   const w = ctx.weeks[ctx.weeks.length-1];
   const shared = rdSharedGolden(ctx, t, w);
-  const srcs = ctx.sources(t, w).filter(s => s.gold > 0);
+  const srcs = ctx.sources(t, w).filter(s => Number(s.gold) > 0)
+    .map(s => ({ label: s.label, pct: (Number(s.gold) - Number(s.sing)) / Number(s.gold) * 100 }));
   if(!shared || srcs.length < 2) return '';
-  const parts = srcs.map(s => `${rdPct((s.gold - s.sing)/s.gold*100)} of ${rdEsc(s.label)}'s`);
-  return rdP(`Matching across sources is happening: ${rdN(shared.shared)} golden records are shared by more than one source. Records that also exist in another source make up ${rdJoinAnd(parts)} golden records.`);
+  const lead = `Matching across sources is happening: ${rdN(shared.shared)} golden records are shared by more than one source.`;
+
+  if(srcs.length <= RD_SHARING_INLINE_MAX){
+    const parts = srcs.map(s => `${rdPct(s.pct)} of ${rdEsc(s.label)}'s`);
+    return rdP(`${lead} Records that also exist in another source make up ${rdJoinAnd(parts)} golden records.`);
+  }
+
+  const sorted = [...srcs].sort((a, b) => b.pct - a.pct);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid].pct : (sorted[mid-1].pct + sorted[mid].pct) / 2;
+  const all = sorted.filter(s => s.pct >= 99.95).length;     // shows as 100.0%
+  const none = sorted.filter(s => s.pct < 0.05).length;      // shows as 0.0%
+  const top = sorted.filter(s => s.pct < 99.95 && s.pct >= 0.05).slice(0, RD_SHARING_TOP)
+    .map(s => `${rdEsc(s.label)} (${rdPct(s.pct)})`);
+
+  const sentences = [lead,
+    `Across the ${rdN(sorted.length)} sources, the median share of a source's golden records that also exist in another source is ${rdPct(median)}.`];
+  if(all) sentences.push(`${rdN(all)} ${all === 1 ? 'source has' : 'sources have'} all of ${all === 1 ? 'its' : 'their'} golden records in another source (100.0%).`);
+  if(top.length) sentences.push(`${all ? 'Below that, the' : 'The'} highest ${top.length === 1 ? 'is' : 'are'} ${rdJoinAnd(top)}.`);
+  if(none) sentences.push(`${rdN(none)} ${none === 1 ? 'source shows' : 'sources show'} 0.0%.`);
+  sentences.push(`The "Also in another source" column in the table below gives the figure for every source.`);
+  return rdP(sentences.join(' '));
 }
 
 /* ---------- short version ---------- */
