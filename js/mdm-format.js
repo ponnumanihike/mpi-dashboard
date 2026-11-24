@@ -17,6 +17,66 @@ const STANDARD_COLS = ['source_id','source_name','source_records','golden_record
 const MDM_EXPORT_COLS = ['snapshot_date','resource_type','source','source_recs','golden_recs','singleton_pct'];
 const JUMP_THRESHOLD_PCT = 5; // |week-over-week change in source records| above this => "Jump"
 
+/* ---------- flexible date parsing ----------
+ * Returns the date as 'YYYY-MM-DD', or null when it is blank or not a real calendar date.
+ * Accepts (any separator: / - . or space; month names in any letter case):
+ *   YYYY-MM-DD  YYYY/MM/DD  YYYYMMDD
+ *   DD/MM/YYYY  DD-MM-YYYY  DD/MM/YY  DD-MM-YY
+ *   MM/DD/YYYY  MM-DD-YYYY  (used when the second number is > 12, e.g. 01/15/2024)
+ *   17-Nov-2026  17 NOVEMBER 2026  Nov 17, 2026  2026-nov-17
+ * A trailing time (e.g. "2026-11-17 00:00:00" or "2026-11-17T08:30:00Z") is ignored.
+ * Ambiguous day/month (both <= 12, e.g. 03/04/2024) is read as DD/MM.
+ * Two-digit years: 50-99 -> 1950-1999, 00-49 -> 2000-2049. */
+const DATE_MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+
+function parseFlexibleDate(v){
+  let s = String(v == null ? '' : v).trim().replace(/^["']|["']$/g, '');
+  if(!s) return null;
+  s = s.replace(/[T\s]+\d{1,2}:\d{2}(:\d{2}(\.\d+)?)?\s*([AaPp][Mm])?\s*(Z|[+-]\d{2}:?\d{2})?$/, '');
+  s = s.replace(/(\d)(st|nd|rd|th)\b/gi, '$1');
+
+  let y, m, d;
+  if(/^\d{8}$/.test(s)){
+    y = s.slice(0, 4); m = s.slice(4, 6); d = s.slice(6, 8);
+  } else {
+    const p = s.split(/[\/\-.\s,]+/).filter(Boolean);
+    if(p.length !== 3) return null;
+    const monthOf = t => {
+      const w = t.toLowerCase();
+      if(w.length < 3 || !/^[a-z]+$/.test(w)) return 0;
+      const i = DATE_MONTHS.findIndex(name => name.startsWith(w) || (w === 'sept' && name === 'september'));
+      return i + 1;
+    };
+    const isNum = t => /^\d+$/.test(t);
+    const named = p.map(monthOf);
+    const n = named.filter(Boolean).length;
+
+    if(n === 1){                                         // month written as a word
+      m = named.find(Boolean);
+      const rest = p.filter((_, i) => !named[i]);
+      if(!rest.every(isNum)) return null;
+      if(rest[0].length === 4){ y = rest[0]; d = rest[1]; }   // 2026-Nov-17
+      else { d = rest[0]; y = rest[1]; }                       // 17-Nov-2026 / Nov 17 2026
+    } else if(n === 0 && p.every(isNum)){
+      const [a, b, c] = p;
+      if(a.length === 4){ y = a; m = b; d = c; }               // YYYY-MM-DD
+      else if(a.length <= 2 && b.length <= 2 && (c.length === 4 || c.length === 2)){
+        y = c;
+        if(+a > 12){ d = a; m = b; }                           // DD/MM/YYYY
+        else if(+b > 12){ m = a; d = b; }                      // MM/DD/YYYY
+        else { d = a; m = b; }                                 // ambiguous -> DD/MM
+      } else return null;
+    } else return null;
+  }
+
+  if(String(y).length === 2) y = (+y >= 50 ? 1900 : 2000) + +y;
+  if(String(d).length > 2 || String(m).length > 2) return null;
+  y = +y; m = +m; d = +d;
+  if(y < 1000 || y > 9999 || m < 1 || m > 12 || d < 1) return null;
+  if(d > new Date(y, m, 0).getDate()) return null;            // e.g. 31/02/2024
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 function isMDMExport(headers){
   return MDM_EXPORT_COLS.every(c => headers.includes(c)) && !headers.includes('source_records');
 }
@@ -30,6 +90,8 @@ function convertMDMExport(headers, records){
   const multiClient = clients.size > 1;
 
   const rows = records.map(r => {
+    const iso = parseFlexibleDate(r.snapshot_date);
+    if(iso) r.snapshot_date = iso;                       // store every date as YYYY-MM-DD
     const isRollup = (r.source||'').toUpperCase() === 'ALL';
     const group = (multiClient ? r.client + '-' : '') + r.resource_type;
     const label = [r.client, r.resource_type].filter(Boolean).join(' ');
@@ -131,7 +193,11 @@ function validateMDMRecords(records){
   const bad = (r, msg) => { errors.push('Row ' + r._line + ': ' + msg); badLines.add(r._line); };
   records.forEach(r => {
     if(!String(r.snapshot_date || '').trim()) bad(r, 'snapshot_date is empty');
-    else if(!/^\d{4}-\d{2}-\d{2}$/.test(String(r.snapshot_date).trim()) || isNaN(new Date(String(r.snapshot_date).trim() + 'T00:00:00').getTime())) bad(r, 'snapshot_date must be a date like 2026-10-19 (got "' + r.snapshot_date + '")');
+    else {
+      const iso = parseFlexibleDate(r.snapshot_date);
+      if(iso) r.snapshot_date = iso;
+      else bad(r, 'snapshot_date is not a recognised date (got "' + r.snapshot_date + '"). Use e.g. 2026-11-17, 17/11/2026, 17-11-26 or 17-Nov-2026');
+    }
     if(!String(r.source || '').trim()) bad(r, 'source is empty');
     if(!validTypes.includes(String(r.resource_type || '').trim().toLowerCase())) bad(r, 'resource_type must be Patient, Practitioner or Organization (got "' + (r.resource_type || '') + '")');
     const sing = String(r.singletons == null ? '' : r.singletons).trim();

@@ -61,6 +61,8 @@ function validateDQReport(rows){
   const issues = [];
   const add = (key, r, sev, msg) => issues.push({ key, row: r._line, area: r.area || '—', check: r.check || '—', severity: sev, issue: msg });
   const today = new Date().toISOString().slice(0, 10);
+  // Accept any common date layout (see parseFlexibleDate in mdm-format.js) and store it as YYYY-MM-DD
+  rows.forEach(r => { const iso = parseFlexibleDate(r.snapshot_date); if(iso) r.snapshot_date = iso; });
   const dates = new Set(rows.map(r => r.snapshot_date).filter(Boolean));
   const clients = new Set(rows.map(r => r.client).filter(Boolean));
   const seen = {};
@@ -69,8 +71,7 @@ function validateDQReport(rows){
     DQR_REQUIRED.forEach(c => { if(isBlank(r[c])) add('blank', r, 'Error', `Missing value in "${c}"`); });
 
     if(r.snapshot_date){
-      const ok = /^\d{4}-\d{2}-\d{2}$/.test(r.snapshot_date) && !isNaN(Date.parse(r.snapshot_date));
-      if(!ok) add('date', r, 'Error', `snapshot_date must be YYYY-MM-DD (got "${r.snapshot_date}")`);
+      if(!parseFlexibleDate(r.snapshot_date)) add('date', r, 'Error', `snapshot_date is not a recognised date (got "${r.snapshot_date}"). Use e.g. 2026-11-17, 17/11/2026, 17-11-26 or 17-Nov-2026`);
       else if(r.snapshot_date > today) add('date', r, 'Warning', `snapshot_date ${r.snapshot_date} is in the future`);
     }
 
